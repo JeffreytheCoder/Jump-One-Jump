@@ -69,39 +69,35 @@ class Base_Scene extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
+        this.hover = this.swarm = false;
         //number of boxex in total
         this.num_boxes = 10;
-        //for toggle swaying motion on and off.
-        this.freeze = false;
-        //for toggle drawing outlines
-        this.draw_outline = false;
         //array of colors
         this.colors = [];
         for (let i = 1; i <= this.num_boxes; i++)
         {
             this.colors.push(color(Math.random(), Math.random(), Math.random(), 1.0))
         }
-
+        //initial camera location
         this.initial_camera_location = Mat4.look_at(vec3(0, 20, -15), vec3(0, 0, 0), vec3(0, -1, 0));
         this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(-15,0,0));
-
+        //all transformations of rendered boxes
         this.box_transformation_queue = [];
         this.box_interval_queue = [];
-        this.max_translation = 12;
-        this.min_translation = 8;
+        this.max_interval = 12;
+        this.min_interval = 8;
         for (let i = 1; i <= this.num_boxes; i++)
         {
-            let temp_interval = getRandomInt(this.min_translation, this.max_translation);
+            let temp_interval = getRandomInt(this.min_interval, this.max_interval);
             this.box_interval_queue.push(temp_interval);
         }
-
-        this.hover = this.swarm = false;
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
             'cube': new Cube(),
             'outline': new Cube_Outline(),
             'cube_single_strip' : new Cube_Single_Strip()
         };
+
         // *** Materials
         this.materials = {
             plastic: new Material(new defs.Phong_Shader(),
@@ -112,9 +108,10 @@ class Base_Scene extends Scene {
         this.charging = false;
         //TODO: change later
         this.figure_inital_pos = this.box_interval_queue[0];
-
+        //record charging time for the jump
         this.charging_begin_time = 0
         this.charging_end_time = 0
+        this.charge_time = 0
     }
 
     display(context, program_state) {
@@ -151,8 +148,6 @@ export class Assignment2 extends Base_Scene {
     }
 
     set_colors() {
-        // Hint:  You might need to create a member variable at somewhere to store the colors, using `this`.
-        // Hint2: You can consider add a constructor for class Assignment2, or add member variables in Base_Scene's constructor.
         // this.colors = [];
         // for (let i = 1; i <= this.num_boxes; i++)
         // {
@@ -172,7 +167,6 @@ export class Assignment2 extends Base_Scene {
         //
         //     this.freeze = !this.freeze;
         // });
-
         // this.key_triggered_button("begin charge", ["b"], () => {
         //     this.time_start =  this.time;
         // });
@@ -195,9 +189,7 @@ export class Assignment2 extends Base_Scene {
     }
 
     draw_box(context, program_state, model_transform, box_index) {
-        // Hint:  You can add more parameters for this function, like the desired color, index of the box, etc.
         //const blue = hex_color("#1a9ffa");
-
         //calculate rotation_angle
         // const period = 3;
         // const maximum_angle = 0.05*(Math.PI);
@@ -209,7 +201,6 @@ export class Assignment2 extends Base_Scene {
         // {
         //     rotation_angle = maximum_angle;
         // }
-        //
         // //calculate the values for translation compensation
         // const original_left_corner_x = -1;
         // const original_left_corner_y = 1.5;
@@ -239,41 +230,69 @@ export class Assignment2 extends Base_Scene {
         //     this.shapes.cube.draw(context, program_state, model_transform.times(Mat4.scale(1, 1.5, 1)), this.materials.plastic.override({color:this.colors[box_index]}));
         // }
 
-
-
-        let translation_distance = this.box_interval_queue[box_index]
-        model_transform = model_transform.times(Mat4.translation(translation_distance,0,0))
-        this.shapes.outline.draw(context, program_state, model_transform.times(Mat4.scale(3, 3, 1)), this.white, "LINES");
+        let translation_distance = this.box_interval_queue[box_index];
+        model_transform = model_transform.times(Mat4.translation(translation_distance,0,0));
+        this.shapes.outline.draw(context, program_state, model_transform.times(Mat4.scale(2.5, 2.5, 1)), this.white, "LINES");
         return model_transform;
     }
 
     draw_figure(context, program_state, model_transform, t0, charge_time)
     {
-
+        let local_charge_time = charge_time
         let t_current = program_state.animation_time / 1000;
-        const velocity_x_max = 4;
-        const velocity_y_max = 3;
-        const charge_time_max = 3;
-        if (charge_time > charge_time_max){
-            charge_time = charge_time_max
+        const z_lower_limit = 3;
+        const velocity_x_max = 12;
+        const velocity_y_max = 6;
+        const g = 12;
+        const charge_time_max = 1;
+        if (local_charge_time > charge_time_max)
+        {
+            local_charge_time = charge_time_max;
         }
-
         let translation_x = 0
         let translation_y = 0
-        if (charge_time != 0)
+        if (local_charge_time != 0)
         {
-            let velocity_x = velocity_x_max * charge_time / charge_time_max;
-            let velocity_y = velocity_y_max * charge_time / charge_time_max;
+            let velocity_x = velocity_x_max * local_charge_time / charge_time_max;
+            let velocity_y = velocity_y_max * local_charge_time / charge_time_max;
 
             let t_delta = t_current - t0;
 
             translation_x = t_delta * velocity_x;
-            translation_y = t_delta * velocity_y + 1/2 * (-1) * (t_delta**2);
+            translation_y = t_delta * velocity_y + 1/2 * (-g) * (t_delta**2);
         }
 
-        model_transform = model_transform.times(Mat4.translation(this.figure_inital_pos,0,-3))
-        model_transform = model_transform.times(Mat4.translation(translation_x,0,-translation_y))
-        this.shapes.outline.draw(context, program_state, model_transform.times(Mat4.scale(0.7, 0.7, 2)), this.white, "LINES");
+        //stay still
+        if (((-translation_y)+(-z_lower_limit)) > -z_lower_limit)
+        {
+            //has jumped at least once
+            if (this.figure_rest_state_transform)
+            {
+                this.charge_time = 0;
+                this.shapes.outline.draw(context, program_state, this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)), this.white, "LINES");
+                this.figure_start_state_transform = this.figure_rest_state_transform;
+            }
+        }
+        //move along a parabola or stay still
+        else
+        {
+            //has jumped at least once
+            if (this.figure_start_state_transform)
+            {
+                model_transform = this.figure_start_state_transform;
+                model_transform = model_transform.times(Mat4.translation(translation_x,0,-translation_y));
+                this.shapes.outline.draw(context, program_state, model_transform.times(Mat4.scale(0.7, 0.7, 2)), this.white, "LINES");
+                this.figure_rest_state_transform = model_transform;
+            }
+            //never jumped yet
+            else
+            {
+                model_transform = model_transform.times(Mat4.translation(this.figure_inital_pos,0,-3));
+                model_transform = model_transform.times(Mat4.translation(translation_x,0,-translation_y));
+                this.shapes.outline.draw(context, program_state, model_transform.times(Mat4.scale(0.7, 0.7, 2)), this.white, "LINES");
+                this.figure_rest_state_transform = model_transform;
+            }
+        }
         return model_transform;
     }
 
@@ -301,22 +320,18 @@ export class Assignment2 extends Base_Scene {
         //     model_transform = this.draw_box(context, program_state, model_transform, i);
         // }
         super.display(context, program_state);
-        //this.color = color(Math.random(), Math.random(), Math.random(), 1.0)
-        this.color = hex_color("#1a9ffa");
         let model_transform_box = Mat4.identity();
         for (let i = 0; i <= (this.num_boxes)-1; i++)
         {
             model_transform_box = this.draw_box(context, program_state, model_transform_box, i);
         }
-
-        let charge_time = 0;
+        this.charge_time = 0;
         if (!this.charging)
         {
-            charge_time = this.charging_end_time - this.charging_begin_time;
+            this.charge_time = this.charging_end_time - this.charging_begin_time;
         }
-
         let model_transform_figure = Mat4.identity();
-        model_transform_figure = this.draw_figure(context, program_state, model_transform_figure, this.charging_end_time, charge_time);
+        model_transform_figure = this.draw_figure(context, program_state, model_transform_figure, this.charging_end_time,  this.charge_time);
 
 
 

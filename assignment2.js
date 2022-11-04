@@ -169,7 +169,7 @@ class Base_Scene extends Scene {
       vec3(0, -1, 0)
     );
     this.initial_camera_location = this.initial_camera_location.times(
-      Mat4.translation(-15, 0, 0)
+      Mat4.translation(-5, 0, 0)
     );
 
     // all transformations of rendered boxes
@@ -189,6 +189,12 @@ class Base_Scene extends Scene {
     this.charging_begin_time = 0;
     this.charging_end_time = 0;
     this.charge_time = 0;
+    //record transformation of the figure
+    this.figure_transform = Mat4.identity();
+    //record translation of the camera
+    this.cemara_x_translation = 0;
+    this.accu_cemara_x_translation = 0;
+    this.cemara_x_translation_limit = 5;
   }
 
   display(context, program_state) {
@@ -293,77 +299,152 @@ export class Assignment2 extends Base_Scene {
 
   draw_figure(context, program_state, model_transform, t0, charge_time) {
     // properties
-    let local_charge_time = charge_time;
+    // let local_charge_time = charge_time;
+    // let t_current = program_state.animation_time / 1000;
+    //
+    // const z_lower_limit = 3;
+    // const velocity_x_max = 12;
+    // const velocity_y_max = 6;
+    // const g = 12;
+    // const charge_time_max = 1;
+    //
+    // if (local_charge_time > charge_time_max) {
+    //   local_charge_time = charge_time_max;
+    // }
+    //
+    // // calculate
+    // let translation_x = 0;
+    // let translation_y = 0;
+    // if (local_charge_time != 0) {
+    //   let velocity_x = (velocity_x_max * local_charge_time) / charge_time_max;
+    //   let velocity_y = (velocity_y_max * local_charge_time) / charge_time_max;
+    //
+    //   let t_delta = t_current - t0;
+    //
+    //   translation_x = t_delta * velocity_x;
+    //   translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
+    // }
+    //
+    // // stay still
+    // if (-translation_y + -z_lower_limit > -z_lower_limit) {
+    //   // has jumped at least once
+    //   if (this.figure_rest_state_transform) {
+    //     this.charge_time = 0;
+    //     this.shapes.cube.draw(
+    //       context,
+    //       program_state,
+    //       this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
+    //       this.materials.character
+    //     );
+    //     this.figure_start_state_transform = this.figure_rest_state_transform;
+    //   }
+    // }
+    // // move along a parabola or stay still
+    // else {
+    //   // has jumped at least once
+    //   if (this.figure_start_state_transform) {
+    //     model_transform = this.figure_start_state_transform;
+    //     model_transform = model_transform.times(
+    //       Mat4.translation(translation_x, 0, -translation_y)
+    //     );
+    //     this.shapes.cube.draw(
+    //       context,
+    //       program_state,
+    //       model_transform.times(Mat4.scale(0.7, 0.7, 2)),
+    //       this.materials.character
+    //     );
+    //     this.figure_rest_state_transform = model_transform;
+    //   }
+    //   // never jumped yet
+    //   else {
+    //     model_transform = model_transform.times(Mat4.translation(0, 0, -3));
+    //     model_transform = model_transform.times(
+    //       Mat4.translation(translation_x, 0, -translation_y)
+    //     );
+    //     this.shapes.cube.draw(
+    //       context,
+    //       program_state,
+    //       model_transform.times(Mat4.scale(0.7, 0.7, 2)),
+    //       this.materials.character
+    //     );
+    //     this.figure_rest_state_transform = model_transform;
+    //   }
+    // }
+    // return model_transform;
     let t_current = program_state.animation_time / 1000;
-
     const z_lower_limit = 3;
     const velocity_x_max = 12;
     const velocity_y_max = 6;
     const g = 12;
     const charge_time_max = 1;
-
-    if (local_charge_time > charge_time_max) {
-      local_charge_time = charge_time_max;
+    if (charge_time > charge_time_max)
+    {
+      charge_time = charge_time_max;
     }
-
-    // calculate
-    let translation_x = 0;
-    let translation_y = 0;
-    if (local_charge_time != 0) {
-      let velocity_x = (velocity_x_max * local_charge_time) / charge_time_max;
-      let velocity_y = (velocity_y_max * local_charge_time) / charge_time_max;
+    let translation_x = 0
+    let translation_y = 0
+    if (charge_time != 0)
+    {
+      let velocity_x = velocity_x_max * charge_time / charge_time_max;
+      let velocity_y = velocity_y_max * charge_time / charge_time_max;
 
       let t_delta = t_current - t0;
 
       translation_x = t_delta * velocity_x;
-      translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
+      translation_y = t_delta * velocity_y + 1/2 * (-g) * (t_delta**2);
     }
 
-    // stay still
-    if (-translation_y + -z_lower_limit > -z_lower_limit) {
-      // has jumped at least once
-      if (this.figure_rest_state_transform) {
+    //end of a jump
+    if (((-translation_y)+(-z_lower_limit)) > -z_lower_limit)
+    {
+      //This is what happens at the end of a jump
+      if (this.figure_rest_state_transform)
+      {
         this.charge_time = 0;
-        this.shapes.cube.draw(
-          context,
-          program_state,
-          this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
-          this.materials.character
-        );
+        this.charging_end_time = 0;
+        this.charging_begin_time = 0;
         this.figure_start_state_transform = this.figure_rest_state_transform;
+        //update the initial_camera_location to be the current camera location
+        this.initial_camera_location =  this.initial_camera_location.times(Mat4.translation(-(this.cemara_x_translation),0, 0));
+        this.accu_cemara_x_translation += this.cemara_x_translation
+        this.cemara_x_translation = 0;
+        this.figure_transform = this.figure_rest_state_transform;
       }
     }
-    // move along a parabola or stay still
-    else {
-      // has jumped at least once
-      if (this.figure_start_state_transform) {
+    //duration of a jump & staying still
+    else
+    {
+      //has jumped at least once
+      if (this.figure_start_state_transform)
+      {
+
+        if (this.charge_time !== 0)
+        {
+          this.cemara_x_translation = translation_x
+        }
         model_transform = this.figure_start_state_transform;
-        model_transform = model_transform.times(
-          Mat4.translation(translation_x, 0, -translation_y)
-        );
-        this.shapes.cube.draw(
-          context,
-          program_state,
-          model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-          this.materials.character
-        );
+        model_transform = model_transform.times(Mat4.translation(translation_x,0,-translation_y));
+        this.current_x_translation = translation_x;
         this.figure_rest_state_transform = model_transform;
+        this.figure_transform = model_transform
       }
-      // never jumped yet
-      else {
-        model_transform = model_transform.times(Mat4.translation(0, 0, -3));
-        model_transform = model_transform.times(
-          Mat4.translation(translation_x, 0, -translation_y)
-        );
-        this.shapes.cube.draw(
-          context,
-          program_state,
-          model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-          this.materials.character
-        );
+      //never jumped yet
+      else
+      {
+        if (this.charge_time !== 0)
+        {
+          this.cemara_x_translation = translation_x
+        }
+        model_transform = model_transform.times(Mat4.translation(0,0,-3));
+        model_transform = model_transform.times(Mat4.translation(translation_x,0,-translation_y));
+        this.current_x_translation = translation_x;
         this.figure_rest_state_transform = model_transform;
+        this.figure_transform = model_transform
       }
     }
+
+    this.shapes.cube.draw(context, program_state, this.figure_transform.times(Mat4.scale(0.7, 0.7, 2)), this.materials.character);
+
     return model_transform;
   }
 
@@ -396,5 +477,8 @@ export class Assignment2 extends Base_Scene {
       this.charging_end_time,
       this.charge_time
     );
+
+    let desired = this.initial_camera_location.times(Mat4.translation(-(this.cemara_x_translation),0, 0))
+    program_state.set_camera(desired);
   }
 }

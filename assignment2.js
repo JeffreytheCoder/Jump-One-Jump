@@ -132,6 +132,9 @@ class Base_Scene extends Scene {
       cube: new Cube(),
     };
 
+    // colors
+    this.color = hex_color('#CFFFF6');
+
     // materials
     this.materials = {
       box: new Material(new defs.Phong_Shader(), {
@@ -148,10 +151,9 @@ class Base_Scene extends Scene {
         ambient: 0.4,
         diffusivity: 0,
         smoothness: 1,
-        color: hex_color('#CFFFF6'),
+        color: this.color,
       }),
     };
-
     // scene properties
     this.hover = this.swarm = false;
     this.init_num_boxes = 2;
@@ -189,6 +191,20 @@ class Base_Scene extends Scene {
     this.charging_begin_time = 0;
     this.charging_end_time = 0;
     this.charge_time = 0;
+
+    // current pair of to-be-jumped boxes
+    this.first_jump_box = [0, 0];
+    this.second_jump_box = 0;
+
+    // figure start state transform
+    this.figure_start_state_transform = Mat4.identity().times(Mat4.translation(0, 0, -3).times(Mat4.translation(0, 0, 0)));
+
+    // 
+    this.next_dir = true;
+  }
+
+  setFloorColor(color) {
+    this.materials.floor.color = color;
   }
 
   display(context, program_state) {
@@ -228,6 +244,7 @@ export class Assignment2 extends Base_Scene {
 
   constructor() {
     super();
+    this.prepare_jump();
   }
 
   make_control_panel() {
@@ -248,22 +265,26 @@ export class Assignment2 extends Base_Scene {
 
   prepare_jump() {
     const next_translation = getRandomInt(this.min_interval, this.max_interval);
-    let next_dir;
+    console.log(next_translation);
     if (this.box_translate_queue.length === 1) {
-      next_dir = true;
+      this.next_dir = true;
     } else {
-      next_dir = Math.round(Math.random());
+      this.next_dir = Math.round(Math.random());
     }
-
-    if (next_dir) {
+    if (this.next_dir) {
       this.box_cur_x += next_translation;
-      this.box_translate_queue.push([this.box_cur_x, 0]);
+      this.box_translate_queue.push([this.box_cur_x, this.box_cur_z]);
       this.jump_dir = true;
     } else {
-      this.box_cur_z += next_translation;
-      this.box_translate_queue.push([0, this.box_cur_z]);
+      this.box_cur_z -= next_translation;
+      this.box_translate_queue.push([this.box_cur_x, this.box_cur_z]);
       this.jump_dir = false;
     }
+    this.first_jump_box = this.box_translate_queue[this.box_translate_queue.length - 2];
+    this.second_jump_box = this.box_translate_queue[this.box_translate_queue.length - 1];
+    console.log('asljdkajshdkajhskdjahskdjhaksjhdakjs');
+    console.log(this.first_jump_box);
+    console.log(this.second_jump_box);
   }
 
   is_figure_in_next_box() {}
@@ -284,11 +305,43 @@ export class Assignment2 extends Base_Scene {
     const [box_x, box_y] = this.box_translate_queue[box_index];
 
     const box_mat = this.identity_mat
-      .times(Mat4.scale(2, 2, 1))
-      .times(Mat4.translation(box_x, -box_y, 0));
-
+      .times(Mat4.translation(box_x, box_y, 0))
+      .times(Mat4.scale(2, 2, 1));
     this.shapes.cube.draw(context, program_state, box_mat, this.materials.box);
     return model_transform;
+  }
+
+  areCollided(figure, box) {
+    console.log("figure: ");
+    console.log(figure);
+    console.log("box: ");
+    console.log(box);
+    if (Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.0 && Math.abs(Math.abs(figure[1]) - Math.abs(box[1]) <= 2.0)) {
+        return true;
+    } return false;
+  }
+
+  collideDetect(model_transform) {
+    let figure = [model_transform[0][3], model_transform[1][3]];
+    if (!this.next_dir) {
+      figure = [model_transform[0][3], -model_transform[1][3]];
+    }
+    console.log(model_transform);
+    if (this.areCollided(figure, this.first_jump_box)) {
+        console.log("0");
+        return 0;
+    } else if (this.areCollided(figure, this.second_jump_box)) {
+        // console.log("ffffff:");
+        // console.log(figure);
+        // console.log("ssssss:");
+        // console.log(this.second_jump_box);
+        console.log("1");
+        this.prepare_jump();
+        return 1;
+    } else {
+      console.log("-1");
+        return -1;
+    }
   }
 
   draw_figure(context, program_state, model_transform, t0, charge_time) {
@@ -318,29 +371,66 @@ export class Assignment2 extends Base_Scene {
       translation_x = t_delta * velocity_x;
       translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
     }
-
+    console.log("y::::");
+    console.log(-translation_y);
+    console.log("rest translation");
+    console.log(this.figure_rest_state_transform);
     // stay still
-    if (-translation_y + -z_lower_limit > -z_lower_limit) {
+    if (-translation_y > 0) {
       // has jumped at least once
-      if (this.figure_rest_state_transform) {
+      // if (this.figure_rest_state_transform) {
+        if (this.collideDetect(this.figure_rest_state_transform) === -1) {
+          // this.charge_time = 0;
+          this.setFloorColor(hex_color('#FF0000'));
+          console.log("floor colorlll");
+          console.log(this.materials.floor.color);
+          this.shapes.cube.draw(
+            context,
+            program_state,
+            this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
+            this.materials.character
+          );
+          this.figure_start_state_transform = this.figure_rest_state_transform;
+          return;
+        }
         this.charge_time = 0;
+        model_transform = this.figure_rest_state_transform;
+        // model_transform = model_transform.times(
+        //   Mat4.translation(translation_x, 0, -translation_y)
+        // );
+        // this.collideDetect(model_transform);
+        // this.shapes.cube.draw(
+        //   context,
+        //   program_state,
+        //   model_transform.times(Mat4.scale(0.7, 0.7, 2)),
+        //   this.materials.character
+        // );
         this.shapes.cube.draw(
           context,
           program_state,
           this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
           this.materials.character
         );
-        this.figure_start_state_transform = this.figure_rest_state_transform;
-      }
+        // this.figure_rest_state_transform = model_transform;
+        this.figure_start_state_transform = model_transform;
+      // }
     }
     // move along a parabola or stay still
     else {
       // has jumped at least once
-      if (this.figure_start_state_transform) {
+      // if (this.figure_start_state_transform) {
         model_transform = this.figure_start_state_transform;
-        model_transform = model_transform.times(
-          Mat4.translation(translation_x, 0, -translation_y)
-        );
+        if (this.next_dir) {
+          model_transform = model_transform.times(
+            Mat4.translation(translation_x, 0, -translation_y)
+          );
+        } else {
+          model_transform = model_transform.times(
+            Mat4.translation(0, -translation_x, -translation_y)
+          );
+        }
+        
+        // this.collideDetect(model_transform);
         this.shapes.cube.draw(
           context,
           program_state,
@@ -348,21 +438,21 @@ export class Assignment2 extends Base_Scene {
           this.materials.character
         );
         this.figure_rest_state_transform = model_transform;
-      }
+      // }
       // never jumped yet
-      else {
-        model_transform = model_transform.times(Mat4.translation(0, 0, -3));
-        model_transform = model_transform.times(
-          Mat4.translation(translation_x, 0, -translation_y)
-        );
-        this.shapes.cube.draw(
-          context,
-          program_state,
-          model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-          this.materials.character
-        );
-        this.figure_rest_state_transform = model_transform;
-      }
+      // else {
+      //   model_transform = model_transform.times(Mat4.translation(0, 0, -3));
+      //   model_transform = model_transform.times(
+      //     Mat4.translation(translation_x, 0, -translation_y)
+      //   );
+      //   this.shapes.cube.draw(
+      //     context,
+      //     program_state,
+      //     model_transform.times(Mat4.scale(0.7, 0.7, 2)),
+      //     this.materials.character
+      //   );
+      //   this.figure_rest_state_transform = model_transform;
+      // }
     }
     return model_transform;
   }
@@ -371,10 +461,6 @@ export class Assignment2 extends Base_Scene {
     super.display(context, program_state);
     let model_transform_box = Mat4.identity();
     this.draw_floor(context, program_state);
-
-    if (this.box_translate_queue.length === 1) {
-      this.prepare_jump();
-    }
 
     for (let i = 0; i < this.box_translate_queue.length; i++) {
       model_transform_box = this.draw_box(

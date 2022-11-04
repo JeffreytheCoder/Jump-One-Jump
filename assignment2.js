@@ -137,23 +137,30 @@ class Base_Scene extends Scene {
       box: new Material(new defs.Phong_Shader(), {
         ambient: 0.4,
         diffusivity: 0.6,
-        color: hex_color('#ffffff'),
+        color: hex_color('#FFF08D'),
       }),
       character: new Material(new defs.Phong_Shader(), {
-        ambient: 0,
-        diffusivity: 0.8,
+        ambient: 0.4,
+        diffusivity: 0.6,
+        color: hex_color('#03A9F4'),
+      }),
+      floor: new Material(new defs.Phong_Shader(), {
+        ambient: 0.4,
+        diffusivity: 0,
         smoothness: 1,
-        color: hex_color('#0000FF'),
+        color: hex_color('#CFFFF6'),
       }),
     };
 
     // scene properties
     this.hover = this.swarm = false;
-    this.num_boxes = 10; //number of boxes in total
+    this.init_num_boxes = 2;
+    this.num_boxes = 5; //number of boxes in total
     this.colors = []; //array of colors
     for (let i = 1; i <= this.num_boxes; i++) {
       this.colors.push(color(Math.random(), Math.random(), Math.random(), 1.0));
     }
+    this.identity_mat = Mat4.identity();
 
     // initial camera location
     this.initial_camera_location = Mat4.look_at(
@@ -165,20 +172,18 @@ class Base_Scene extends Scene {
       Mat4.translation(-15, 0, 0)
     );
 
-    //all transformations of rendered boxes
-    this.box_transformation_queue = [];
-    this.box_interval_queue = [];
-    this.max_interval = 12;
-    this.min_interval = 8;
-    for (let i = 1; i <= this.num_boxes; i++) {
-      let temp_interval = getRandomInt(this.min_interval, this.max_interval);
-      this.box_interval_queue.push(temp_interval);
-    }
+    // all transformations of rendered boxes
+    this.box_translate_queue = [[0, 0]];
 
-    // character property
+    this.max_interval = 10;
+    this.min_interval = 5;
+
+    this.box_cur_x = 0;
+    this.box_cur_z = 0;
+
+    // figure property
     this.charging = false;
-    //TODO: change later
-    this.figure_inital_pos = this.box_interval_queue[0];
+    this.jump_dir = true; // x: true, z: false
 
     //record charging time for the jump
     this.charging_begin_time = 0;
@@ -207,7 +212,7 @@ class Base_Scene extends Scene {
     );
 
     // *** Lights: *** Values of vector or point lights.
-    const light_position = vec4(0, 5, 5, 1);
+    const light_position = vec4(0, 30, 0, 1);
     program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
     this.time = program_state.animation_time / 1000;
   }
@@ -241,17 +246,48 @@ export class Assignment2 extends Base_Scene {
     );
   }
 
-  draw_box(context, program_state, model_transform, box_index) {
-    let translation_distance = this.box_interval_queue[box_index];
-    model_transform = model_transform.times(
-      Mat4.translation(translation_distance, 0, 0)
-    );
+  prepare_jump() {
+    const next_translation = getRandomInt(this.min_interval, this.max_interval);
+    let next_dir;
+    if (this.box_translate_queue.length === 1) {
+      next_dir = true;
+    } else {
+      next_dir = Math.round(Math.random());
+    }
+
+    if (next_dir) {
+      this.box_cur_x += next_translation;
+      this.box_translate_queue.push([this.box_cur_x, 0]);
+      this.jump_dir = true;
+    } else {
+      this.box_cur_z += next_translation;
+      this.box_translate_queue.push([0, this.box_cur_z]);
+      this.jump_dir = false;
+    }
+  }
+
+  is_figure_in_next_box() {}
+
+  draw_floor(context, program_state) {
+    const floor_mat = this.identity_mat
+      .times(Mat4.translation(0, 0, 1))
+      .times(Mat4.scale(1000, 1000, 0.001));
     this.shapes.cube.draw(
       context,
       program_state,
-      model_transform.times(Mat4.scale(2.5, 2.5, 1)),
-      this.materials.box
+      floor_mat,
+      this.materials.floor
     );
+  }
+
+  draw_box(context, program_state, model_transform, box_index) {
+    const [box_x, box_y] = this.box_translate_queue[box_index];
+
+    const box_mat = this.identity_mat
+      .times(Mat4.scale(2, 2, 1))
+      .times(Mat4.translation(box_x, -box_y, 0));
+
+    this.shapes.cube.draw(context, program_state, box_mat, this.materials.box);
     return model_transform;
   }
 
@@ -315,9 +351,7 @@ export class Assignment2 extends Base_Scene {
       }
       // never jumped yet
       else {
-        model_transform = model_transform.times(
-          Mat4.translation(this.figure_inital_pos, 0, -3)
-        );
+        model_transform = model_transform.times(Mat4.translation(0, 0, -3));
         model_transform = model_transform.times(
           Mat4.translation(translation_x, 0, -translation_y)
         );
@@ -336,7 +370,13 @@ export class Assignment2 extends Base_Scene {
   display(context, program_state) {
     super.display(context, program_state);
     let model_transform_box = Mat4.identity();
-    for (let i = 0; i <= this.num_boxes - 1; i++) {
+    this.draw_floor(context, program_state);
+
+    if (this.box_translate_queue.length === 1) {
+      this.prepare_jump();
+    }
+
+    for (let i = 0; i < this.box_translate_queue.length; i++) {
       model_transform_box = this.draw_box(
         context,
         program_state,

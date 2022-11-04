@@ -201,6 +201,9 @@ class Base_Scene extends Scene {
 
     // 
     this.next_dir = true;
+
+    //game over sign
+    this.game_over = false;
   }
 
   setFloorColor(color) {
@@ -248,20 +251,22 @@ export class Assignment2 extends Base_Scene {
   }
 
   make_control_panel() {
-    this.key_triggered_button(
-      'Charge for jump',
-      ['c'],
-      () => {
-        this.charging = true;
-        this.charging_begin_time = this.time;
-      },
-      undefined,
-      () => {
-        this.charging_end_time = this.time;
-        this.charging = false;
-      }
-    );
-  }
+      this.key_triggered_button(
+        'Charge for jump',
+        ['c'],
+        () => {
+          this.charging = true;
+          this.charging_begin_time = this.time;
+        },
+        undefined,
+        () => {
+          this.charging_end_time = this.time;
+          if (!this.game_over) {
+            this.charging = false;
+          }
+        }
+      );
+  } 
 
   prepare_jump() {
     const next_translation = getRandomInt(this.min_interval, this.max_interval);
@@ -305,18 +310,19 @@ export class Assignment2 extends Base_Scene {
     const [box_x, box_y] = this.box_translate_queue[box_index];
 
     const box_mat = this.identity_mat
-      .times(Mat4.translation(box_x, box_y, 0))
-      .times(Mat4.scale(2, 2, 1));
+      .times(Mat4.translation(box_x, box_y, 0).times((Mat4.scale(2, 2, 1))));
     this.shapes.cube.draw(context, program_state, box_mat, this.materials.box);
     return model_transform;
   }
 
   areCollided(figure, box) {
-    console.log("figure: ");
-    console.log(figure);
-    console.log("box: ");
-    console.log(box);
-    if (Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.0 && Math.abs(Math.abs(figure[1]) - Math.abs(box[1]) <= 2.0)) {
+    // console.log("figure: ");
+    // console.log(figure);
+    // console.log("box: ");
+    // console.log(box);
+    // console.log(Math.abs(Math.abs(figure[0]) - Math.abs(box[0])));
+    // console.log(Math.abs(Math.abs(figure[1]) - Math.abs(box[1])));
+    if (Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 1.7 && Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 1.7) {
         return true;
     } return false;
   }
@@ -348,8 +354,6 @@ export class Assignment2 extends Base_Scene {
     // properties
     let local_charge_time = charge_time;
     let t_current = program_state.animation_time / 1000;
-
-    const z_lower_limit = 3;
     const velocity_x_max = 12;
     const velocity_y_max = 6;
     const g = 12;
@@ -371,88 +375,54 @@ export class Assignment2 extends Base_Scene {
       translation_x = t_delta * velocity_x;
       translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
     }
-    console.log("y::::");
-    console.log(-translation_y);
-    console.log("rest translation");
-    console.log(this.figure_rest_state_transform);
+    // console.log("y::::");
+    // console.log(-translation_y);
+    // console.log("rest translation");
+    // console.log(this.figure_rest_state_transform);
     // stay still
     if (-translation_y > 0) {
       // has jumped at least once
-      // if (this.figure_rest_state_transform) {
-        if (this.collideDetect(this.figure_rest_state_transform) === -1) {
-          // this.charge_time = 0;
-          this.setFloorColor(hex_color('#FF0000'));
-          console.log("floor colorlll");
-          console.log(this.materials.floor.color);
-          this.shapes.cube.draw(
-            context,
-            program_state,
-            this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
-            this.materials.character
-          );
-          this.figure_start_state_transform = this.figure_rest_state_transform;
-          return;
-        }
-        this.charge_time = 0;
-        model_transform = this.figure_rest_state_transform;
-        // model_transform = model_transform.times(
-        //   Mat4.translation(translation_x, 0, -translation_y)
-        // );
-        // this.collideDetect(model_transform);
-        // this.shapes.cube.draw(
-        //   context,
-        //   program_state,
-        //   model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-        //   this.materials.character
-        // );
-        this.shapes.cube.draw(
-          context,
-          program_state,
-          this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
-          this.materials.character
-        );
-        // this.figure_rest_state_transform = model_transform;
-        this.figure_start_state_transform = model_transform;
-      // }
+      this.shapes.cube.draw(
+        context,
+        program_state,
+        this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
+        this.materials.character
+      );
+      if (this.collideDetect(this.figure_rest_state_transform) === -1) {
+        this.game_over = true;
+        // this.charge_time = 0;
+        this.setFloorColor(hex_color('#FF0000'));
+        // console.log("floor colorlll");
+        // console.log(this.materials.floor.color);
+        this.figure_start_state_transform = this.figure_rest_state_transform;
+        return;
+      }
+      this.charge_time = 0;
+      model_transform = this.figure_rest_state_transform;
+      this.figure_start_state_transform = model_transform;
     }
     // move along a parabola or stay still
     else {
       // has jumped at least once
       // if (this.figure_start_state_transform) {
-        model_transform = this.figure_start_state_transform;
-        if (this.next_dir) {
-          model_transform = model_transform.times(
-            Mat4.translation(translation_x, 0, -translation_y)
-          );
-        } else {
-          model_transform = model_transform.times(
-            Mat4.translation(0, -translation_x, -translation_y)
-          );
-        }
-        
-        // this.collideDetect(model_transform);
-        this.shapes.cube.draw(
-          context,
-          program_state,
-          model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-          this.materials.character
+      model_transform = this.figure_start_state_transform;
+      if (this.next_dir) {
+        model_transform = model_transform.times(
+          Mat4.translation(translation_x, 0, -translation_y)
         );
-        this.figure_rest_state_transform = model_transform;
-      // }
-      // never jumped yet
-      // else {
-      //   model_transform = model_transform.times(Mat4.translation(0, 0, -3));
-      //   model_transform = model_transform.times(
-      //     Mat4.translation(translation_x, 0, -translation_y)
-      //   );
-      //   this.shapes.cube.draw(
-      //     context,
-      //     program_state,
-      //     model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-      //     this.materials.character
-      //   );
-      //   this.figure_rest_state_transform = model_transform;
-      // }
+      } else {
+        model_transform = model_transform.times(
+          Mat4.translation(0, -translation_x, -translation_y)
+        );
+      }
+      // this.collideDetect(model_transform);
+      this.shapes.cube.draw(
+        context,
+        program_state,
+        model_transform.times(Mat4.scale(0.7, 0.7, 2)),
+        this.materials.character
+      );
+      this.figure_rest_state_transform = model_transform;
     }
     return model_transform;
   }

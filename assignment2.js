@@ -199,11 +199,18 @@ class Base_Scene extends Scene {
     // figure start state transform
     this.figure_start_state_transform = Mat4.identity().times(Mat4.translation(0, 0, -3).times(Mat4.translation(0, 0, 0)));
 
-    // 
+    //x: true, z: false
     this.next_dir = true;
 
     //game over sign
     this.game_over = false;
+
+    //for camera translation
+    this.camera_horizontal_translation = 0;
+    this.accu_camera_horizental_translation = 0;
+    this.camera_depth_translation = 0;
+    this.accu_camera_depth_translation = 0;
+
   }
 
   setFloorColor(color) {
@@ -379,15 +386,22 @@ export class Assignment2 extends Base_Scene {
     // console.log(-translation_y);
     // console.log("rest translation");
     // console.log(this.figure_rest_state_transform);
-    // stay still
+
+    //This is what happens at the end of a jump
     if (-translation_y > 0) {
-      // has jumped at least once
       this.shapes.cube.draw(
         context,
         program_state,
         this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
         this.materials.character
       );
+      //reset all timers
+      this.charge_time = 0;
+      this.charging_end_time = 0;
+      this.charging_begin_time = 0;
+      //TODO: maybe a better way to sync these
+      this.last_dir = this.next_dir;
+
       if (this.collideDetect(this.figure_rest_state_transform) === -1) {
         this.game_over = true;
         // this.charge_time = 0;
@@ -397,20 +411,39 @@ export class Assignment2 extends Base_Scene {
         this.figure_start_state_transform = this.figure_rest_state_transform;
         return;
       }
-      this.charge_time = 0;
+      //change camera initial location
+      if (this.last_dir){
+        this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(-(this.camera_horizontal_translation),0, 0));
+      }
+      else {
+        this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(0,-(this.camera_depth_translation), 0));
+      }
+      //reset camera translations before next jump
+      this.camera_horizontal_translation = 0;
+      this.camera_depth_translation = 0
+
       model_transform = this.figure_rest_state_transform;
       this.figure_start_state_transform = model_transform;
     }
     // move along a parabola or stay still
     else {
-      // has jumped at least once
+      //duration of a jump & staying still
+
       // if (this.figure_start_state_transform) {
       model_transform = this.figure_start_state_transform;
+      //x-direction mode (?)
       if (this.next_dir) {
+        if (this.charge_time !== 0) {
+          this.camera_horizontal_translation = translation_x
+        }
         model_transform = model_transform.times(
           Mat4.translation(translation_x, 0, -translation_y)
         );
+      //z-direction mode (?)
       } else {
+        if (this.charge_time !== 0) {
+          this.camera_depth_translation = -translation_x
+        }
         model_transform = model_transform.times(
           Mat4.translation(0, -translation_x, -translation_y)
         );
@@ -452,5 +485,8 @@ export class Assignment2 extends Base_Scene {
       this.charging_end_time,
       this.charge_time
     );
+    //change camera
+    let desired = this.initial_camera_location.times(Mat4.translation(-(this.camera_horizontal_translation),-(this.camera_depth_translation), 0))
+    program_state.set_camera(desired);
   }
 }

@@ -254,15 +254,46 @@ export class Assignment2 extends Base_Scene {
 
   constructor() {
     super();
+    this.play_list = ['1', '2'];
+    this.current_song_index = 0;
+    this.audio = new Audio('./music/something_nice1.mp3');
+    this.audio_play_start = false;
+    this.setUpAudio();
     this.prepare_jump();
+    //this.play_music_list();
   }
 
+  setUpAudio() {
+    let self = this;
+    this.audio.onended = function() {
+      self.updateAudio(self);
+    }
+  }
+
+  updateAudio(self) {
+      console.log('onended');
+      console.log(self.current_song_index);
+      self.current_song_index = (self.current_song_index + 1) % self.play_list.length;
+      self.audio.src = './music/something_nice' + self.play_list[self.current_song_index] + '.mp3';
+      self.audio.load();
+      self.audio.play();
+  }
+
+  play_music_list() {
+    if (!this.audio_play_start) {
+      this.audio.play();
+    }
+  }
   make_control_panel() {
       this.key_triggered_button(
         'Charge for jump',
         ['c'],
         () => {
           this.charging = true;
+          if (!this.audio_play_start) {
+            this.audio_play_start = true;
+            this.audio.play();
+          }
           this.charging_begin_time = this.time;
         },
         undefined,
@@ -409,6 +440,9 @@ export class Assignment2 extends Base_Scene {
         // console.log("floor colorlll");
         // console.log(this.materials.floor.color);
         this.figure_start_state_transform = this.figure_rest_state_transform;
+        if (!this.audio.paused) {
+          this.audio.pause();
+        }
         return;
       }
       //change camera initial location

@@ -198,7 +198,7 @@ class Base_Scene extends Scene {
 
     // figure start state transform
     this.figure_start_state_transform = Mat4.identity().times(Mat4.translation(0, 0, -3).times(Mat4.translation(0, 0, 0)));
-
+    this.figure_rest_state_transform = Mat4.identity();
     //x: true, z: false
     this.next_dir = true;
 
@@ -388,139 +388,146 @@ export class Assignment2 extends Base_Scene {
     }
   }
 
-  draw_figure(context, program_state, model_transform, t0, charge_time) {
-    // properties
+  getXYTranslations(t0, charge_time, program_state) {
     let local_charge_time = charge_time;
-    let t_current = program_state.animation_time / 1000;
+    const t_current = program_state.animation_time / 1000;
     const velocity_x_max = 12;
     const velocity_y_max = 6;
     const g = 12;
     const charge_time_max = 1;
-
     if (local_charge_time > charge_time_max) {
       local_charge_time = charge_time_max;
     }
-
     // calculate
     let translation_x = 0;
     let translation_y = 0;
     if (local_charge_time != 0) {
       let velocity_x = (velocity_x_max * local_charge_time) / charge_time_max;
       let velocity_y = (velocity_y_max * local_charge_time) / charge_time_max;
-
       let t_delta = t_current - t0;
-
       translation_x = t_delta * velocity_x;
       translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
     }
-    // console.log("y::::");
-    // console.log(-translation_y);
-    // console.log("rest translation");
-    // console.log(this.figure_rest_state_transform);
+    return [translation_x, translation_y];
+  }
 
-    //This is what happens at the end of a jump
-    if (-translation_y > 0) {
-      this.shapes.cube.draw(
+  checkGameOver() {
+    if (this.collideDetect(this.figure_rest_state_transform) === -1) {
+      this.game_over = true;
+      this.setFloorColor(hex_color('#FF0000'));
+      this.figure_start_state_transform = this.figure_rest_state_transform;
+      if (!this.audio.paused) {
+        this.audio.pause();
+      }
+      return true;
+    } return false;
+  }
+
+  resetTimers() {
+    this.charge_time = 0;
+    this.charging_end_time = 0;
+    this.charging_begin_time = 0;
+  }
+
+  resetCameraTranslations() {
+    this.camera_horizontal_translation = 0;
+    this.camera_depth_translation = 0;
+  }
+
+  changeInitCameraLoc() {
+    const [x_cam_hor_tran, y_cam_hor_tran] = this.last_dir ? [-(this.camera_horizontal_translation), 0] : [0, -(this.camera_depth_translation)];
+    this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(x_cam_hor_tran,y_cam_hor_tran, 0));
+  }
+
+  cameraChangeAndRestStateChange(translation_x, translation_y) {
+    this.figure_rest_state_transform = this.figure_start_state_transform;
+    const [x_trans, y_trans] = this.next_dir ? [translation_x, 0] : [0, -translation_x];
+    //x-direction mode (?)
+    if (this.next_dir) {
+      if (this.charge_time !== 0) {
+        this.camera_horizontal_translation = translation_x;
+      }
+      //z-direction mode (?)
+    } else {
+      if (this.charge_time !== 0) {
+        this.camera_depth_translation = -translation_x;
+      }
+    }
+    this.figure_rest_state_transform = this.figure_rest_state_transform.times(
+        Mat4.translation(x_trans, y_trans, -translation_y)
+    );
+  }
+
+  drawFigure(context, program_state) {
+    this.shapes.cube.draw(
         context,
         program_state,
         this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
         this.materials.character
-      );
-      //reset all timers
-      this.charge_time = 0;
-      this.charging_end_time = 0;
-      this.charging_begin_time = 0;
-      //TODO: maybe a better way to sync these
-      this.last_dir = this.next_dir;
-
-      if (this.collideDetect(this.figure_rest_state_transform) === -1) {
-        this.game_over = true;
-        // this.charge_time = 0;
-        this.setFloorColor(hex_color('#FF0000'));
-        // console.log("floor colorlll");
-        // console.log(this.materials.floor.color);
-        this.figure_start_state_transform = this.figure_rest_state_transform;
-        if (!this.audio.paused) {
-          this.audio.pause();
-        }
-        return;
-      }
-      //change camera initial location
-      if (this.last_dir){
-        this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(-(this.camera_horizontal_translation),0, 0));
-      }
-      else {
-        this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(0,-(this.camera_depth_translation), 0));
-      }
-      //reset camera translations before next jump
-      this.camera_horizontal_translation = 0;
-      this.camera_depth_translation = 0
-
-      model_transform = this.figure_rest_state_transform;
-      this.figure_start_state_transform = model_transform;
-    }
-    // move along a parabola or stay still
-    else {
-      //duration of a jump & staying still
-
-      // if (this.figure_start_state_transform) {
-      model_transform = this.figure_start_state_transform;
-      //x-direction mode (?)
-      if (this.next_dir) {
-        if (this.charge_time !== 0) {
-          this.camera_horizontal_translation = translation_x
-        }
-        model_transform = model_transform.times(
-          Mat4.translation(translation_x, 0, -translation_y)
-        );
-      //z-direction mode (?)
-      } else {
-        if (this.charge_time !== 0) {
-          this.camera_depth_translation = -translation_x
-        }
-        model_transform = model_transform.times(
-          Mat4.translation(0, -translation_x, -translation_y)
-        );
-      }
-      // this.collideDetect(model_transform);
-      this.shapes.cube.draw(
-        context,
-        program_state,
-        model_transform.times(Mat4.scale(0.7, 0.7, 2)),
-        this.materials.character
-      );
-      this.figure_rest_state_transform = model_transform;
-    }
-    return model_transform;
+    );
   }
 
-  display(context, program_state) {
-    super.display(context, program_state);
-    let model_transform_box = Mat4.identity();
-    this.draw_floor(context, program_state);
+  checkAndJump(context, program_state, translation_x, translation_y) {
+    if (-translation_y > 0) {
+      this.drawFigure(context, program_state);
+      //reset all timers
+      this.resetTimers();
+      //TODO: maybe a better way to sync these
+      this.last_dir = this.next_dir;
+      if (this.checkGameOver()) { return; }
+      //change camera initial location
+      this.changeInitCameraLoc();
+      //reset camera translations before next jump
+      this.resetCameraTranslations();
+      this.figure_start_state_transform = this.figure_rest_state_transform;
+    } else {
+      this.cameraChangeAndRestStateChange(translation_x, translation_y);
+      this.drawFigure(context, program_state);
+    }
+  }
 
+  draw_figure(context, program_state, t0, charge_time) {
+    // properties
+    const [translation_x, translation_y] = this.getXYTranslations(t0, charge_time, program_state);
+    //This is what happens at the end of a jump
+    this.checkAndJump(context, program_state, translation_x, translation_y);
+  }
+
+  drawBoxes(context, program_state) {
+    let model_transform_box = Mat4.identity();
     for (let i = 0; i < this.box_translate_queue.length; i++) {
       model_transform_box = this.draw_box(
-        context,
-        program_state,
-        model_transform_box,
-        i
+          context,
+          program_state,
+          model_transform_box,
+          i
       );
     }
+  }
+
+  setUpChargingTime() {
     this.charge_time = 0;
     if (!this.charging) {
       this.charge_time = this.charging_end_time - this.charging_begin_time;
     }
-    let model_transform_figure = Mat4.identity();
-    model_transform_figure = this.draw_figure(
+  }
+
+  setUpCameraLoc(program_state) {
+    let desired = this.initial_camera_location.times(Mat4.translation(-(this.camera_horizontal_translation),-(this.camera_depth_translation), 0))
+    program_state.set_camera(desired);
+  }
+  display(context, program_state) {
+    super.display(context, program_state);
+    this.draw_floor(context, program_state);
+    this.drawBoxes(context, program_state);
+    this.setUpChargingTime();
+    this.draw_figure(
       context,
       program_state,
-      model_transform_figure,
       this.charging_end_time,
       this.charge_time
     );
     //change camera
-    let desired = this.initial_camera_location.times(Mat4.translation(-(this.camera_horizontal_translation),-(this.camera_depth_translation), 0))
-    program_state.set_camera(desired);
+    this.setUpCameraLoc(program_state);
   }
 }

@@ -197,7 +197,9 @@ class Base_Scene extends Scene {
     this.second_jump_box = 0;
 
     // figure start state transform
-    this.figure_start_state_transform = Mat4.identity().times(Mat4.translation(0, 0, -3).times(Mat4.translation(0, 0, 0)));
+    this.figure_start_state_transform = Mat4.identity().times(
+      Mat4.translation(0, 0, -3).times(Mat4.translation(0, 0, 0))
+    );
     this.figure_rest_state_transform = Mat4.identity();
     //x: true, z: false
     this.next_dir = true;
@@ -211,6 +213,7 @@ class Base_Scene extends Scene {
     this.camera_depth_translation = 0;
     this.accu_camera_depth_translation = 0;
 
+    this.fall_dis = 2;
   }
 
   setFloorColor(color) {
@@ -265,18 +268,22 @@ export class Assignment2 extends Base_Scene {
 
   setUpAudio() {
     let self = this;
-    this.audio.onended = function() {
+    this.audio.onended = function () {
       self.updateAudio(self);
-    }
+    };
   }
 
   updateAudio(self) {
-      console.log('onended');
-      console.log(self.current_song_index);
-      self.current_song_index = (self.current_song_index + 1) % self.play_list.length;
-      self.audio.src = './music/something_nice' + self.play_list[self.current_song_index] + '.mp3';
-      self.audio.load();
-      self.audio.play();
+    console.log('onended');
+    console.log(self.current_song_index);
+    self.current_song_index =
+      (self.current_song_index + 1) % self.play_list.length;
+    self.audio.src =
+      './music/something_nice' +
+      self.play_list[self.current_song_index] +
+      '.mp3';
+    self.audio.load();
+    self.audio.play();
   }
 
   play_music_list() {
@@ -285,26 +292,26 @@ export class Assignment2 extends Base_Scene {
     }
   }
   make_control_panel() {
-      this.key_triggered_button(
-        'Charge for jump',
-        ['c'],
-        () => {
-          this.charging = true;
-          if (!this.audio_play_start) {
-            this.audio_play_start = true;
-            this.audio.play();
-          }
-          this.charging_begin_time = this.time;
-        },
-        undefined,
-        () => {
-          this.charging_end_time = this.time;
-          if (!this.game_over) {
-            this.charging = false;
-          }
+    this.key_triggered_button(
+      'Charge for jump',
+      ['c'],
+      () => {
+        this.charging = true;
+        if (!this.audio_play_start) {
+          this.audio_play_start = true;
+          this.audio.play();
         }
-      );
-  } 
+        this.charging_begin_time = this.time;
+      },
+      undefined,
+      () => {
+        this.charging_end_time = this.time;
+        if (!this.game_over) {
+          this.charging = false;
+        }
+      }
+    );
+  }
 
   prepare_jump() {
     const next_translation = getRandomInt(this.min_interval, this.max_interval);
@@ -323,11 +330,10 @@ export class Assignment2 extends Base_Scene {
       this.box_translate_queue.push([this.box_cur_x, this.box_cur_z]);
       this.jump_dir = false;
     }
-    this.first_jump_box = this.box_translate_queue[this.box_translate_queue.length - 2];
-    this.second_jump_box = this.box_translate_queue[this.box_translate_queue.length - 1];
-    console.log('asljdkajshdkajhskdjahskdjhaksjhdakjs');
-    console.log(this.first_jump_box);
-    console.log(this.second_jump_box);
+    this.first_jump_box =
+      this.box_translate_queue[this.box_translate_queue.length - 2];
+    this.second_jump_box =
+      this.box_translate_queue[this.box_translate_queue.length - 1];
   }
 
   is_figure_in_next_box() {}
@@ -347,22 +353,21 @@ export class Assignment2 extends Base_Scene {
   draw_box(context, program_state, model_transform, box_index) {
     const [box_x, box_y] = this.box_translate_queue[box_index];
 
-    const box_mat = this.identity_mat
-      .times(Mat4.translation(box_x, box_y, 0).times((Mat4.scale(2, 2, 1))));
+    const box_mat = this.identity_mat.times(
+      Mat4.translation(box_x, box_y, 0).times(Mat4.scale(2, 2, 1))
+    );
     this.shapes.cube.draw(context, program_state, box_mat, this.materials.box);
     return model_transform;
   }
 
   areCollided(figure, box) {
-    // console.log("figure: ");
-    // console.log(figure);
-    // console.log("box: ");
-    // console.log(box);
-    // console.log(Math.abs(Math.abs(figure[0]) - Math.abs(box[0])));
-    // console.log(Math.abs(Math.abs(figure[1]) - Math.abs(box[1])));
-    if (Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 1.7 && Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 1.7) {
-        return true;
-    } return false;
+    if (
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.7 &&
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 2.7
+    ) {
+      return true;
+    }
+    return false;
   }
 
   collideDetect(model_transform) {
@@ -372,19 +377,12 @@ export class Assignment2 extends Base_Scene {
     }
     console.log(model_transform);
     if (this.areCollided(figure, this.first_jump_box)) {
-        console.log("0");
-        return 0;
+      return 0;
     } else if (this.areCollided(figure, this.second_jump_box)) {
-        // console.log("ffffff:");
-        // console.log(figure);
-        // console.log("ssssss:");
-        // console.log(this.second_jump_box);
-        console.log("1");
-        this.prepare_jump();
-        return 1;
+      this.prepare_jump();
+      return 1;
     } else {
-      console.log("-1");
-        return -1;
+      return -1;
     }
   }
 
@@ -420,7 +418,8 @@ export class Assignment2 extends Base_Scene {
         this.audio.pause();
       }
       return true;
-    } return false;
+    }
+    return false;
   }
 
   resetTimers() {
@@ -435,13 +434,19 @@ export class Assignment2 extends Base_Scene {
   }
 
   changeInitCameraLoc() {
-    const [x_cam_hor_tran, y_cam_hor_tran] = this.last_dir ? [-(this.camera_horizontal_translation), 0] : [0, -(this.camera_depth_translation)];
-    this.initial_camera_location = this.initial_camera_location.times(Mat4.translation(x_cam_hor_tran,y_cam_hor_tran, 0));
+    const [x_cam_hor_tran, y_cam_hor_tran] = this.last_dir
+      ? [-this.camera_horizontal_translation, 0]
+      : [0, -this.camera_depth_translation];
+    this.initial_camera_location = this.initial_camera_location.times(
+      Mat4.translation(x_cam_hor_tran, y_cam_hor_tran, 0)
+    );
   }
 
   cameraChangeAndRestStateChange(translation_x, translation_y) {
     this.figure_rest_state_transform = this.figure_start_state_transform;
-    const [x_trans, y_trans] = this.next_dir ? [translation_x, 0] : [0, -translation_x];
+    const [x_trans, y_trans] = this.next_dir
+      ? [translation_x, 0]
+      : [0, -translation_x];
     //x-direction mode (?)
     if (this.next_dir) {
       if (this.charge_time !== 0) {
@@ -454,27 +459,43 @@ export class Assignment2 extends Base_Scene {
       }
     }
     this.figure_rest_state_transform = this.figure_rest_state_transform.times(
-        Mat4.translation(x_trans, y_trans, -translation_y)
+      Mat4.translation(x_trans, y_trans, -translation_y)
     );
   }
 
-  drawFigure(context, program_state) {
-    this.shapes.cube.draw(
+  drawFigure(context, program_state, is_falling = false) {
+    if (is_falling && this.fall_dis > 0) {
+      this.figure_rest_state_transform = this.figure_rest_state_transform.times(
+        Mat4.translation(0, 0, 0.1)
+      );
+      this.shapes.cube.draw(
         context,
         program_state,
         this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
         this.materials.character
-    );
+      );
+      this.fall_dis -= 0.1;
+    } else {
+      this.shapes.cube.draw(
+        context,
+        program_state,
+        this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
+        this.materials.character
+      );
+    }
   }
 
   checkAndJump(context, program_state, translation_x, translation_y) {
     if (-translation_y > 0) {
+      if (this.checkGameOver()) {
+        this.drawFigure(context, program_state, true);
+        return;
+      }
       this.drawFigure(context, program_state);
       //reset all timers
       this.resetTimers();
       //TODO: maybe a better way to sync these
       this.last_dir = this.next_dir;
-      if (this.checkGameOver()) { return; }
       //change camera initial location
       this.changeInitCameraLoc();
       //reset camera translations before next jump
@@ -488,7 +509,11 @@ export class Assignment2 extends Base_Scene {
 
   draw_figure(context, program_state, t0, charge_time) {
     // properties
-    const [translation_x, translation_y] = this.getXYTranslations(t0, charge_time, program_state);
+    const [translation_x, translation_y] = this.getXYTranslations(
+      t0,
+      charge_time,
+      program_state
+    );
     //This is what happens at the end of a jump
     this.checkAndJump(context, program_state, translation_x, translation_y);
   }
@@ -497,10 +522,10 @@ export class Assignment2 extends Base_Scene {
     let model_transform_box = Mat4.identity();
     for (let i = 0; i < this.box_translate_queue.length; i++) {
       model_transform_box = this.draw_box(
-          context,
-          program_state,
-          model_transform_box,
-          i
+        context,
+        program_state,
+        model_transform_box,
+        i
       );
     }
   }
@@ -513,9 +538,16 @@ export class Assignment2 extends Base_Scene {
   }
 
   setUpCameraLoc(program_state) {
-    let desired = this.initial_camera_location.times(Mat4.translation(-(this.camera_horizontal_translation),-(this.camera_depth_translation), 0))
+    let desired = this.initial_camera_location.times(
+      Mat4.translation(
+        -this.camera_horizontal_translation,
+        -this.camera_depth_translation,
+        0
+      )
+    );
     program_state.set_camera(desired);
   }
+
   display(context, program_state) {
     super.display(context, program_state);
     this.draw_floor(context, program_state);

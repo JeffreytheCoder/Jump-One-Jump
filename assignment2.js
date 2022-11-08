@@ -487,6 +487,8 @@ export class Assignment2 extends Base_Scene {
 
   checkAndJump(context, program_state, translation_x, translation_y) {
     if (-translation_y > 0) {
+      //TODO: maybe a better way to sync these
+      this.last_dir = this.next_dir;
       if (this.checkGameOver()) {
         this.drawFigure(context, program_state, true);
         return;
@@ -494,8 +496,6 @@ export class Assignment2 extends Base_Scene {
       this.drawFigure(context, program_state);
       //reset all timers
       this.resetTimers();
-      //TODO: maybe a better way to sync these
-      this.last_dir = this.next_dir;
       //change camera initial location
       this.changeInitCameraLoc();
       //reset camera translations before next jump

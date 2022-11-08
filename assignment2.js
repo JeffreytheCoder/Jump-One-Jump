@@ -171,7 +171,7 @@ class Base_Scene extends Scene {
       vec3(0, -1, 0)
     );
     this.initial_camera_location = this.initial_camera_location.times(
-      Mat4.translation(-15, 0, 0)
+      Mat4.translation(-5, 0, 0)
     );
 
     // all transformations of rendered boxes
@@ -209,11 +209,11 @@ class Base_Scene extends Scene {
 
     //for camera translation
     this.camera_horizontal_translation = 0;
-    this.accu_camera_horizental_translation = 0;
     this.camera_depth_translation = 0;
-    this.accu_camera_depth_translation = 0;
 
     this.fall_dis = 2;
+
+    this.jump_distance = 0
   }
 
   setFloorColor(color) {
@@ -397,15 +397,18 @@ export class Assignment2 extends Base_Scene {
       local_charge_time = charge_time_max;
     }
     // calculate
+    let velocity_x = 0
+    let velocity_y = 0
     let translation_x = 0;
     let translation_y = 0;
     if (local_charge_time != 0) {
-      let velocity_x = (velocity_x_max * local_charge_time) / charge_time_max;
-      let velocity_y = (velocity_y_max * local_charge_time) / charge_time_max;
+      velocity_x = (velocity_x_max * local_charge_time) / charge_time_max;
+      velocity_y = (velocity_y_max * local_charge_time) / charge_time_max;
       let t_delta = t_current - t0;
       translation_x = t_delta * velocity_x;
       translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
     }
+    this.jump_distance = velocity_x*(2*velocity_y/g)
     return [translation_x, translation_y];
   }
 
@@ -459,8 +462,9 @@ export class Assignment2 extends Base_Scene {
       }
     }
     this.figure_rest_state_transform = this.figure_rest_state_transform.times(
-      Mat4.translation(x_trans, y_trans, -translation_y)
-    );
+      Mat4.translation(x_trans, y_trans, -translation_y));
+    this.m_x_trans = x_trans;
+    this.m_y_trans = y_trans;
   }
 
   drawFigure(context, program_state, is_falling = false) {
@@ -476,10 +480,22 @@ export class Assignment2 extends Base_Scene {
       );
       this.fall_dis -= 0.1;
     } else {
+      //get numerator
+      let trans = this.m_x_trans ? this.m_x_trans : this.m_y_trans;
+      //get denominator
+      let total_trans = this.jump_distance
+      //get current rotation angle
+      let angle = total_trans ? (trans/total_trans)*Math.PI : 0;
+      //we cannot change figure_rest_state_transform since it is also used for the camera translation.
+      //so create a temp variable here to encode the rotation of the figure
+      let temp_transform_matrix = this.figure_rest_state_transform;
+      //determine the rotation axis based on the current direction
+      temp_transform_matrix = this.next_dir ? temp_transform_matrix.times(Mat4.rotation(-angle,0,1,0)) :
+          temp_transform_matrix.times(Mat4.rotation(angle,1,0,0))
       this.shapes.cube.draw(
         context,
         program_state,
-        this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
+        temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
         this.materials.character
       );
     }

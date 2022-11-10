@@ -53,13 +53,13 @@ Play with the code in `example/transforms_sandbox.js` and re-run your program un
 
 Once you are comfortable with this, begin implementing the graded requirements below (a stack of cubes). 
 
-__Your final scene must go in the `assignment2.js` in order to be graded.__
+__Your final scene must go in the `scene-implementation.js` in order to be graded.__
 
 That class exposes its constructor to you, where you can see how it sets up the camera, lighting shader, and materials (which contain quantities related to how shapes and lights will interact), which are all defined there to help you do the actual assignment requirements.
 
-In order to select the scene `Assignment2` to display instead of `Transforms_Sandbox`, once you are ready to switch you must change your `main-scene.js, line:28` . Simply replace where the `Transforms_Sandbox` name with `Assignment2`. It will draw that instead.
+In order to select the scene `SceneImplementation` to display instead of `Transforms_Sandbox`, once you are ready to switch you must change your `main-scene.js, line:28` . Simply replace where the `Transforms_Sandbox` name with `SceneImplementation`. It will draw that instead.
 
-We have marked places in the code with "**// TODO**" to demark anywhere we intend for your final code to be in order to get points. All of these places you modify are inside the file `assignment2.js`.
+We have marked places in the code with "**// TODO**" to demark anywhere we intend for your final code to be in order to get points. All of these places you modify are inside the file `scene-implementation.js`.
 
 ### Graded Steps
 
@@ -67,7 +67,7 @@ We have marked places in the code with "**// TODO**" to demark anywhere we inten
 
 Implement the assignment in clean and understandable code. Each required part must successfully draw and show up onscreen in order to count.
 
-NOTE: Please use the default camera definition defined in the `assignment2.js`.
+NOTE: Please use the default camera definition defined in the `scene-implementation.js`.
 
 **If any parts are unclear, ask in Discussions on BruinLearn.**
 
@@ -115,7 +115,7 @@ NOTE: Please use the default camera definition defined in the `assignment2.js`.
 
 ![step-4](docs/step4.png)
 
-5. Draw each cube’s outline (the edges) in white. For this, you will need to design a new `Shape` subclass. Fill in the empty parts we left in the `Cube_Outline` class, defined in your `assignment2.js` file. It will be like your `Cube`'s definition above it, except with your own brand new arrays. Each vertex gets a position and a color (`color` replaces `normal` in this example). Define the positions of your cube outline as x,y,z coordinates of the cube points. Order them in pairs, so that each pair is one edge of the outline. You may NOT have any extra edges going across diagonals. Set each color value in the `color` array to full white - making sure the list has as many entries as the `positions` list. Do not make an indices list - instead use "`this.indices = false`".
+5. Draw each cube’s outline (the edges) in white. For this, you will need to design a new `Shape` subclass. Fill in the empty parts we left in the `Cube_Outline` class, defined in your `scene-implementation.js` file. It will be like your `Cube`'s definition above it, except with your own brand new arrays. Each vertex gets a position and a color (`color` replaces `normal` in this example). Define the positions of your cube outline as x,y,z coordinates of the cube points. Order them in pairs, so that each pair is one edge of the outline. You may NOT have any extra edges going across diagonals. Set each color value in the `color` array to full white - making sure the list has as many entries as the `positions` list. Do not make an indices list - instead use "`this.indices = false`".
 
    (a). To actually draw your outline, you will need to call `draw()` on it and pass in a material that is compatible with it. That's because you just changed its available `Shape` fields to "positions" and "color", and so the type of `Shader` we use on it has to know what to do with that information. The variable we called "`this.white`" already holds such a proper, compatible material -- so just pass that one in as your third parameter to `draw()` your outline. This should draw it using exactly the colors you made for it (white colors). Lastly, to actually draw lines instead of triangles (letting it know that there's __pairs__ of vertices instead of triples), you must pass in the string "LINES" as the last argument to `draw()` – **3 points.**
 

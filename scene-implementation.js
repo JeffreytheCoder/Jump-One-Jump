@@ -247,7 +247,7 @@ class Base_Scene extends Scene {
   }
 }
 
-export class Assignment2 extends Base_Scene {
+export class SceneImplementation extends Base_Scene {
   /**
    * This Scene object can be added to any display canvas.
    * We isolate that code so it can be experimented with on its own.

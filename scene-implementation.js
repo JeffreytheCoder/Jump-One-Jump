@@ -130,6 +130,7 @@ class Base_Scene extends Scene {
     // shapes
     this.shapes = {
       cube: new Cube(),
+      chess: new Cube(),
     };
 
     // colors
@@ -213,7 +214,7 @@ class Base_Scene extends Scene {
 
     this.fall_dis = 2;
 
-    this.jump_distance = 0
+    this.jump_distance = 0;
   }
 
   setFloorColor(color) {
@@ -259,6 +260,9 @@ export class SceneImplementation extends Base_Scene {
     super();
     this.play_list = ['1', '2'];
     this.current_song_index = 0;
+    this.charge_audio = new Audio('./music/charge.mp3');
+    this.end_audio = new Audio('./music/end.mp3');
+    this.end_audio.loop = false;
     this.audio = new Audio('./music/something_nice1.mp3');
     this.audio_play_start = false;
     this.setUpAudio();
@@ -297,14 +301,13 @@ export class SceneImplementation extends Base_Scene {
       ['c'],
       () => {
         this.charging = true;
-        if (!this.audio_play_start) {
-          this.audio_play_start = true;
-          this.audio.play();
-        }
+        this.charge_audio.play();
         this.charging_begin_time = this.time;
       },
       undefined,
       () => {
+        this.charge_audio.pause();
+        this.charge_audio.currentTime = 0;
         this.charging_end_time = this.time;
         if (!this.game_over) {
           this.charging = false;
@@ -397,8 +400,8 @@ export class SceneImplementation extends Base_Scene {
       local_charge_time = charge_time_max;
     }
     // calculate
-    let velocity_x = 0
-    let velocity_y = 0
+    let velocity_x = 0;
+    let velocity_y = 0;
     let translation_x = 0;
     let translation_y = 0;
     if (local_charge_time != 0) {
@@ -408,13 +411,17 @@ export class SceneImplementation extends Base_Scene {
       translation_x = t_delta * velocity_x;
       translation_y = t_delta * velocity_y + (1 / 2) * -g * t_delta ** 2;
     }
-    this.jump_distance = velocity_x*(2*velocity_y/g)
+    this.jump_distance = velocity_x * ((2 * velocity_y) / g);
     return [translation_x, translation_y];
   }
 
   checkGameOver() {
+    if (this.game_over) {
+      return true;
+    }
     if (this.collideDetect(this.figure_rest_state_transform) === -1) {
       this.game_over = true;
+      this.end_audio.play();
       this.setFloorColor(hex_color('#FF0000'));
       this.figure_start_state_transform = this.figure_rest_state_transform;
       if (!this.audio.paused) {
@@ -462,7 +469,8 @@ export class SceneImplementation extends Base_Scene {
       }
     }
     this.figure_rest_state_transform = this.figure_rest_state_transform.times(
-      Mat4.translation(x_trans, y_trans, -translation_y));
+      Mat4.translation(x_trans, y_trans, -translation_y)
+    );
     this.m_x_trans = x_trans;
     this.m_y_trans = y_trans;
   }
@@ -472,7 +480,7 @@ export class SceneImplementation extends Base_Scene {
       this.figure_rest_state_transform = this.figure_rest_state_transform.times(
         Mat4.translation(0, 0, 0.1)
       );
-      this.shapes.cube.draw(
+      this.shapes.chess.draw(
         context,
         program_state,
         this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
@@ -483,16 +491,17 @@ export class SceneImplementation extends Base_Scene {
       //get numerator
       let trans = this.m_x_trans ? this.m_x_trans : this.m_y_trans;
       //get denominator
-      let total_trans = this.jump_distance
+      let total_trans = this.jump_distance;
       //get current rotation angle
-      let angle = total_trans ? (trans/total_trans)*Math.PI : 0;
+      let angle = total_trans ? (trans / total_trans) * Math.PI : 0;
       //we cannot change figure_rest_state_transform since it is also used for the camera translation.
       //so create a temp variable here to encode the rotation of the figure
       let temp_transform_matrix = this.figure_rest_state_transform;
       //determine the rotation axis based on the current direction
-      temp_transform_matrix = this.next_dir ? temp_transform_matrix.times(Mat4.rotation(-angle,0,1,0)) :
-          temp_transform_matrix.times(Mat4.rotation(angle,1,0,0))
-      this.shapes.cube.draw(
+      temp_transform_matrix = this.next_dir
+        ? temp_transform_matrix.times(Mat4.rotation(-angle, 0, 1, 0))
+        : temp_transform_matrix.times(Mat4.rotation(angle, 1, 0, 0));
+      this.shapes.chess.draw(
         context,
         program_state,
         temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),

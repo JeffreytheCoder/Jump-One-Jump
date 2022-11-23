@@ -180,8 +180,8 @@ class Base_Scene extends Scene {
     // all transformations of rendered boxes
     this.box_translate_queue = [[0, 0]];
 
-    this.max_interval = 10;
-    this.min_interval = 5;
+    this.max_interval = 12.5;
+    this.min_interval = 6;
 
     this.box_cur_x = 0;
     this.box_cur_z = 0;

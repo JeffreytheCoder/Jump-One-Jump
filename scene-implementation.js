@@ -216,6 +216,7 @@ class Base_Scene extends Scene {
 
     this.jump_distance = 0;
     this.charging_scale = 2;
+    this.light_pos = vec4(-5, 30, -25, 1);
   }
 
   setFloorColor(color) {
@@ -234,6 +235,9 @@ class Base_Scene extends Scene {
       // Define the global camera and projection matrices, which are stored in program_state.
       //program_state.set_camera(Mat4.translation(-5, -5, -30));
       program_state.set_camera(this.initial_camera_location);
+      program_state.lights = [
+        new Light(this.light_pos, color(1, 1, 1, 1), 1000),
+      ];
     }
     program_state.projection_transform = Mat4.perspective(
       Math.PI / 4,
@@ -243,8 +247,6 @@ class Base_Scene extends Scene {
     );
 
     // *** Lights: *** Values of vector or point lights.
-    const light_position = vec4(0, 30, 0, 1);
-    program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
     this.time = program_state.animation_time / 1000;
   }
 }
@@ -365,8 +367,8 @@ export class SceneImplementation extends Base_Scene {
 
   areCollided(figure, box) {
     if (
-      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.5 &&
-      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 2.5
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.65 &&
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 2.65
     ) {
       return true;
     }
@@ -449,6 +451,10 @@ export class SceneImplementation extends Base_Scene {
     this.initial_camera_location = this.initial_camera_location.times(
       Mat4.translation(x_cam_hor_tran, y_cam_hor_tran, 0)
     );
+    this.light_pos = Mat4.identity()
+      .times(Mat4.translation(-x_cam_hor_tran, -y_cam_hor_tran, 0))
+      .times(this.light_pos);
+    // console.log(this.light_pos);
   }
 
   cameraChangeAndRestStateChange(translation_x, translation_y) {
@@ -587,7 +593,7 @@ export class SceneImplementation extends Base_Scene {
   }
 
   setUpCameraLoc(program_state) {
-    let desired = this.initial_camera_location.times(
+    const desired = this.initial_camera_location.times(
       Mat4.translation(
         -this.camera_horizontal_translation,
         -this.camera_depth_translation,
@@ -595,6 +601,22 @@ export class SceneImplementation extends Base_Scene {
       )
     );
     program_state.set_camera(desired);
+    const desired_light = Mat4.identity()
+      .times(
+        Mat4.translation(
+          -this.camera_horizontal_translation,
+          -this.camera_depth_translation,
+          0
+        )
+      )
+      .times(this.light_pos);
+    // console.log(
+    //   -this.camera_horizontal_translation,
+    //   -this.camera_depth_translation,
+    //   this.light_pos,
+    //   desired_light
+    // );
+    program_state.lights = [new Light(desired_light, color(1, 1, 1, 1), 1000)];
   }
 
   display(context, program_state) {

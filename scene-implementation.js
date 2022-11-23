@@ -199,7 +199,7 @@ class Base_Scene extends Scene {
 
     // figure start state transform
     this.figure_start_state_transform = Mat4.identity().times(
-      Mat4.translation(0, 0, -3).times(Mat4.translation(0, 0, 0))
+      Mat4.translation(0, 0, 0)
     );
     this.figure_rest_state_transform = Mat4.identity();
     //x: true, z: false
@@ -212,9 +212,10 @@ class Base_Scene extends Scene {
     this.camera_horizontal_translation = 0;
     this.camera_depth_translation = 0;
 
-    this.fall_dis = 2;
+    this.fall_dis = 1.5;
 
     this.jump_distance = 0;
+    this.charging_scale = 2;
   }
 
   setFloorColor(color) {
@@ -318,7 +319,6 @@ export class SceneImplementation extends Base_Scene {
 
   prepare_jump() {
     const next_translation = getRandomInt(this.min_interval, this.max_interval);
-    console.log(next_translation);
     if (this.box_translate_queue.length === 1) {
       this.next_dir = true;
     } else {
@@ -365,8 +365,8 @@ export class SceneImplementation extends Base_Scene {
 
   areCollided(figure, box) {
     if (
-      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.7 &&
-      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 2.7
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) <= 2.5 &&
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) <= 2.5
     ) {
       return true;
     }
@@ -378,7 +378,6 @@ export class SceneImplementation extends Base_Scene {
     if (!this.next_dir) {
       figure = [model_transform[0][3], -model_transform[1][3]];
     }
-    console.log(model_transform);
     if (this.areCollided(figure, this.first_jump_box)) {
       return 0;
     } else if (this.areCollided(figure, this.second_jump_box)) {
@@ -476,18 +475,41 @@ export class SceneImplementation extends Base_Scene {
   }
 
   drawFigure(context, program_state, is_falling = false) {
-    if (is_falling && this.fall_dis > 0) {
-      this.figure_rest_state_transform = this.figure_rest_state_transform.times(
-        Mat4.translation(0, 0, 0.1)
-      );
+    if (is_falling) {
+      if (this.fall_dis > 0.5) {
+        this.shapes.chess.draw(
+          context,
+          program_state,
+          this.figure_rest_state_transform
+            .times(Mat4.scale(0.7, 0.7, 2))
+            .times(Mat4.translation(0, 0, -this.fall_dis)),
+          this.materials.character
+        );
+        this.fall_dis -= 0.025;
+      } else {
+        this.shapes.chess.draw(
+          context,
+          program_state,
+          this.figure_rest_state_transform
+            .times(Mat4.scale(0.7, 0.7, 2))
+            .times(Mat4.translation(0, 0, -0.5)),
+          this.materials.character
+        );
+      }
+    } else if (this.charging) {
+      if (this.charging_scale > 1.25) {
+        this.charging_scale -= 0.01;
+      }
       this.shapes.chess.draw(
         context,
         program_state,
-        this.figure_rest_state_transform.times(Mat4.scale(0.7, 0.7, 2)),
+        this.figure_rest_state_transform
+          .times(Mat4.scale(0.7, 0.7, this.charging_scale))
+          .times(Mat4.translation(0, 0, -1.5)),
         this.materials.character
       );
-      this.fall_dis -= 0.1;
     } else {
+      this.charging_scale = 2;
       //get numerator
       let trans = this.m_x_trans ? this.m_x_trans : this.m_y_trans;
       //get denominator
@@ -496,7 +518,9 @@ export class SceneImplementation extends Base_Scene {
       let angle = total_trans ? (trans / total_trans) * Math.PI : 0;
       //we cannot change figure_rest_state_transform since it is also used for the camera translation.
       //so create a temp variable here to encode the rotation of the figure
-      let temp_transform_matrix = this.figure_rest_state_transform;
+      let temp_transform_matrix = this.figure_rest_state_transform.times(
+        Mat4.translation(0, 0, -3)
+      );
       //determine the rotation axis based on the current direction
       temp_transform_matrix = this.next_dir
         ? temp_transform_matrix.times(Mat4.rotation(-angle, 0, 1, 0))

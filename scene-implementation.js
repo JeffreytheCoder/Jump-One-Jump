@@ -165,15 +165,17 @@ class Base_Scene extends Scene {
     }
     this.identity_mat = Mat4.identity();
 
-    // initial camera location
+    // initial camera & light location
     this.initial_camera_location = Mat4.look_at(
-      vec3(0, 20, -15),
-      vec3(0, 0, 0),
-      vec3(0, -1, 0)
+      vec3(-20, 20, -20),
+      vec3(1, -1, 1),
+      vec3(1, -1, 0)
     );
     this.initial_camera_location = this.initial_camera_location.times(
       Mat4.translation(-5, 0, 0)
     );
+    this.light_pos = vec4(-5, 200, -200, 1);
+    // .times(Mat4.rotation(Math.PI / 3, vec3(0, 0, 0)));
 
     // all transformations of rendered boxes
     this.box_translate_queue = [[0, 0]];
@@ -216,7 +218,6 @@ class Base_Scene extends Scene {
 
     this.jump_distance = 0;
     this.charging_scale = 2;
-    this.light_pos = vec4(-5, 30, -25, 1);
   }
 
   setFloorColor(color) {
@@ -236,7 +237,7 @@ class Base_Scene extends Scene {
       //program_state.set_camera(Mat4.translation(-5, -5, -30));
       program_state.set_camera(this.initial_camera_location);
       program_state.lights = [
-        new Light(this.light_pos, color(1, 1, 1, 1), 1000),
+        new Light(this.light_pos, color(1, 1, 1, 1), 80000),
       ];
     }
     program_state.projection_transform = Mat4.perspective(
@@ -616,7 +617,7 @@ export class SceneImplementation extends Base_Scene {
     //   this.light_pos,
     //   desired_light
     // );
-    program_state.lights = [new Light(desired_light, color(1, 1, 1, 1), 1000)];
+    program_state.lights = [new Light(desired_light, color(1, 1, 1, 1), 80000)];
   }
 
   display(context, program_state) {

@@ -136,6 +136,7 @@ class Base_Scene extends Scene {
     // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
     super();
 
+    //4 lines below: Code adapted from ./examples/surfaces-demo.js
     const initial_corner_point = vec3(-1, -1, 0);
     const row_operation = (s, p) => p ? Mat4.translation(0, .2, 0).times(p.to4(1)).to3()
         : initial_corner_point;
@@ -259,6 +260,7 @@ class Base_Scene extends Scene {
     this.materials.floor.color = color;
   }
 
+ //floating_floor: Code adapted from ./examples/surfaces-demo.js
  floating_floor(context, program_state) {
      const random = (x) => Math.sin(1000 * x + program_state.animation_time / 1000);
 

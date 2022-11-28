@@ -14,6 +14,7 @@ const {
   Shape,
   Material,
   Scene,
+  Texture,
 } = tiny;
 
 const LANDED_ON_GROUND = 10;
@@ -135,32 +136,47 @@ class Base_Scene extends Scene {
     // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
     super();
 
+    const initial_corner_point = vec3(-1, -1, 0);
+    const row_operation = (s, p) => p ? Mat4.translation(0, .2, 0).times(p.to4(1)).to3()
+        : initial_corner_point;
+    const column_operation = (t, p) => Mat4.translation(.2, 0, 0).times(p.to4(1)).to3();
+
+    let modified_floor = new defs.Grid_Patch(10, 10, row_operation, column_operation)
+    for(let i=0; i<modified_floor.arrays.texture_coord.length;i++){
+      modified_floor.arrays.texture_coord[i].scale_by(1);
+    }
+
+    let modified_cube = new defs.Cube();
+    for(let i=0; i<modified_cube.arrays.texture_coord.length;i++){
+      modified_cube.arrays.texture_coord[i].scale_by(0.5);
+    }
+
     // shapes
     this.shapes = {
-      cube: new Cube(),
+      cube: modified_cube,
       chess: new Cube(),
+      sheet: modified_floor,
     };
 
     // colors
-    this.color = hex_color('#CFFFF6');
+    this.color = hex_color('#F7342B');
 
     // materials
     this.materials = {
-      box: new Material(new defs.Phong_Shader(), {
-        ambient: 0.4,
-        diffusivity: 0.6,
-        color: hex_color('#FFF08D'),
+      box: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        color: hex_color('#000000'),
+        texture: new Texture("assets/steel2.jpg"),
       }),
       character: new Material(new defs.Phong_Shader(), {
         ambient: 0.4,
         diffusivity: 0.6,
         color: hex_color('#03A9F4'),
       }),
-      floor: new Material(new defs.Phong_Shader(), {
-        ambient: 0.4,
-        diffusivity: 0,
-        smoothness: 1,
-        color: this.color,
+      floor: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        color: hex_color('#000000'),
+        texture: new Texture("assets/lava.jpg"),
       }),
     };
     // scene properties
@@ -236,10 +252,31 @@ class Base_Scene extends Scene {
     this.fall_dis_2 = 0;
     this.near_edge = false;
     this.mouse_enabled = false;
+    this.r = Mat4.identity();
   }
 
   setFloorColor(color) {
     this.materials.floor.color = color;
+  }
+
+ floating_floor(context, program_state) {
+     const random = (x) => Math.sin(1000 * x + program_state.animation_time / 1000);
+
+     // Update the JavaScript-side shape with new vertices:
+     this.shapes.sheet.arrays.position.forEach((p, i, a) =>
+         a[i] = vec3(p[0], p[1], .15 * random(i / a.length)));
+     // Update the normals to reflect the surface's new arrangement.
+     // This won't be perfect flat shading because vertices are shared.
+     //this.shapes.sheet.flat_shade();
+     // Draw the current sheet shape.
+     let floor_transform = Mat4.identity();
+     floor_transform = floor_transform.times(Mat4.scale(1000,1000,4));
+     floor_transform = floor_transform.times(Mat4.translation(0.15,0.05,0));
+     this.shapes.sheet.draw(context, program_state, floor_transform, this.materials.floor);
+
+     // Update the gpu-side shape with new vertices.
+     // Warning:  You can't call this until you've already drawn the shape once.
+     this.shapes.sheet.copy_onto_graphics_card(context.context, ["position", "normal"], false);
   }
 
   display(context, program_state) {
@@ -380,17 +417,17 @@ export class SceneImplementation extends Base_Scene {
 
   is_figure_in_next_box() {}
 
-  draw_floor(context, program_state) {
-    const floor_mat = this.identity_mat
-      .times(Mat4.translation(0, 0, 1))
-      .times(Mat4.scale(1000, 1000, 0.001));
-    this.shapes.cube.draw(
-      context,
-      program_state,
-      floor_mat,
-      this.materials.floor
-    );
-  }
+  // draw_floor(context, program_state) {
+  //   const floor_mat = this.identity_mat
+  //     .times(Mat4.translation(0, 0, 1))
+  //     .times(Mat4.scale(1000, 1000, 0.001));
+  //   this.shapes.cube.draw(
+  //     context,
+  //     program_state,
+  //     floor_mat,
+  //     this.materials.floor
+  //   );
+  // }
 
   draw_box(context, program_state, model_transform, box_index) {
     const [box_x, box_y] = this.box_translate_queue[box_index];
@@ -815,8 +852,7 @@ export class SceneImplementation extends Base_Scene {
       this.mouse_enabled = true;
     }
     super.display(context, program_state);
-    this.draw_floor(context, program_state);
-    this.drawBoxes(context, program_state);
+    this.setUpCameraLoc(program_state);
     this.setUpChargingTime();
     this.draw_figure(
       context,
@@ -825,6 +861,8 @@ export class SceneImplementation extends Base_Scene {
       this.charge_time
     );
     //change camera
-    this.setUpCameraLoc(program_state);
+    this.floating_floor(context, program_state);
+    this.drawBoxes(context, program_state);
+
   }
 }

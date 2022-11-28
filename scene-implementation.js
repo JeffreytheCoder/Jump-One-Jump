@@ -235,6 +235,7 @@ class Base_Scene extends Scene {
     this.last_RF_transform = Mat4.identity();
     this.fall_dis_2 = 0;
     this.near_edge = false;
+    this.mouse_enabled = false;
   }
 
   setFloorColor(color) {
@@ -337,6 +338,23 @@ export class SceneImplementation extends Base_Scene {
     );
   }
 
+  add_mouse_controls(canvas) {
+    canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.charging = true;
+      this.charge_audio.play();
+      this.charging_begin_time = this.time;
+    });
+    canvas.addEventListener('mouseup', (e) => {
+      this.charge_audio.pause();
+      this.charge_audio.currentTime = 0;
+      this.charging_end_time = this.time;
+      if (!this.game_over_1 && !this.game_over_2) {
+        this.charging = false;
+      }
+    });
+  }
+
   //prepares the next landing box
   prepare_jump() {
     const next_translation = getRandomInt(this.min_interval, this.max_interval);
@@ -386,29 +404,28 @@ export class SceneImplementation extends Base_Scene {
 
   areCollided(figure, box) {
     if (
-        Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) >= 2.7 ||
-        Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) >= 2.7
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) >= 2.7 ||
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) >= 2.7
     ) {
-      return LANDED_ON_GROUND
-    }
-    else if ((Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) < 2.7 &&
-        Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) > 2))
-    {
-      this.axis_offset = Math.abs(Math.abs(figure[0]) - Math.abs(box[0]))-2
-      this.near_edge = figure[0] > box[0] ? false : true
+      return LANDED_ON_GROUND;
+    } else if (
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) < 2.7 &&
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) > 2
+    ) {
+      this.axis_offset = Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) - 2;
+      this.near_edge = figure[0] > box[0] ? false : true;
       //console.log("figure[0]: %d, box[0]: %d", figure[0], box[0])
-      return LANDED_ON_EDGE
-    }
-    else if ((Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) < 2.7 &&
-            Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) > 2))
-    {
-      this.axis_offset = Math.abs(Math.abs(figure[1]) - Math.abs(box[1]))-2
-      this.near_edge = figure[1] < box[1] ? false : true
+      return LANDED_ON_EDGE;
+    } else if (
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) < 2.7 &&
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) > 2
+    ) {
+      this.axis_offset = Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) - 2;
+      this.near_edge = figure[1] < box[1] ? false : true;
       //console.log("figure[1]: %d, box[1]: %d", figure[1], box[1])
-      return LANDED_ON_EDGE
-    }
-    else{
-      return LANDED_ON_BOX
+      return LANDED_ON_EDGE;
+    } else {
+      return LANDED_ON_BOX;
     }
   }
 
@@ -421,22 +438,20 @@ export class SceneImplementation extends Base_Scene {
     let second_box_result = this.areCollided(figure, this.second_jump_box);
     if (first_box_result === LANDED_ON_BOX) {
       return 0;
-    }
-    else if (second_box_result === LANDED_ON_BOX) {
+    } else if (second_box_result === LANDED_ON_BOX) {
       this.prepare_jump();
       return 1;
-    }
-    else if (first_box_result === LANDED_ON_GROUND && second_box_result === LANDED_ON_GROUND){
+    } else if (
+      first_box_result === LANDED_ON_GROUND &&
+      second_box_result === LANDED_ON_GROUND
+    ) {
       return LANDED_ON_GROUND;
-    }
-    else if (first_box_result === LANDED_ON_EDGE){
-      return LANDED_ON_EDGE_BOX1
-    }
-    else if (second_box_result === LANDED_ON_EDGE){
-      return LANDED_ON_EDGE_BOX2
-    }
-    else{
-      return -1
+    } else if (first_box_result === LANDED_ON_EDGE) {
+      return LANDED_ON_EDGE_BOX1;
+    } else if (second_box_result === LANDED_ON_EDGE) {
+      return LANDED_ON_EDGE_BOX2;
+    } else {
+      return -1;
     }
   }
 
@@ -478,28 +493,26 @@ export class SceneImplementation extends Base_Scene {
   checkGameOver() {
     if (this.game_over_1) {
       return [DIRECT_FALLING, 0];
-    }
-    else if (this.game_over_2) {
+    } else if (this.game_over_2) {
       return [ROTATE_AND_FALLING, LANDED_ON_EDGE_BOX1];
-    }
-    else if (this.game_over_3) {
+    } else if (this.game_over_3) {
       return [ROTATE_AND_FALLING, LANDED_ON_EDGE_BOX2];
     }
-    let collide_detect_result = this.collideDetect(this.figure_rest_state_transform)
+    let collide_detect_result = this.collideDetect(
+      this.figure_rest_state_transform
+    );
     if (collide_detect_result === LANDED_ON_GROUND) {
-      this.game_over_1 = true
-      this.doGameOver()
+      this.game_over_1 = true;
+      this.doGameOver();
       return [DIRECT_FALLING, 0];
-    }
-    else if (collide_detect_result === LANDED_ON_EDGE_BOX1) {
-      this.game_over_2 = true
-      this.doGameOver()
-      return [ROTATE_AND_FALLING, LANDED_ON_EDGE_BOX1]
-    }
-    else if (collide_detect_result === LANDED_ON_EDGE_BOX2){
-      this.game_over_3 = true
-      this.doGameOver()
-      return [ROTATE_AND_FALLING, LANDED_ON_EDGE_BOX2]
+    } else if (collide_detect_result === LANDED_ON_EDGE_BOX1) {
+      this.game_over_2 = true;
+      this.doGameOver();
+      return [ROTATE_AND_FALLING, LANDED_ON_EDGE_BOX1];
+    } else if (collide_detect_result === LANDED_ON_EDGE_BOX2) {
+      this.game_over_3 = true;
+      this.doGameOver();
+      return [ROTATE_AND_FALLING, LANDED_ON_EDGE_BOX2];
     }
     return [0, 0];
   }
@@ -551,7 +564,13 @@ export class SceneImplementation extends Base_Scene {
     this.m_y_trans = y_trans;
   }
 
-  drawFigure(context, program_state, is_falling = false, is_rotating = false, edge = 0) {
+  drawFigure(
+    context,
+    program_state,
+    is_falling = false,
+    is_rotating = false,
+    edge = 0
+  ) {
     let dt = program_state.animation_delta_time / 1000;
     if (is_falling) {
       if (this.fall_dis > 0.5) {
@@ -574,74 +593,85 @@ export class SceneImplementation extends Base_Scene {
           this.materials.character
         );
       }
-    }
-    else if (is_rotating){
+    } else if (is_rotating) {
       //this.doGameOver()
       const rotation_time = 0.8;
-      const angular_v = Math.PI/(2 * rotation_time);
+      const angular_v = Math.PI / (2 * rotation_time);
       const fall_speed = 2;
-      if (this.falling_rotation < Math.PI/2) {
-        this.falling_rotation +=  angular_v * dt;
+      if (this.falling_rotation < Math.PI / 2) {
+        this.falling_rotation += angular_v * dt;
         let temp_transform_matrix = this.figure_rest_state_transform;
         //landed on the far edge of the first box or landed on the far edge of the second box
-        if (edge === LANDED_ON_EDGE_BOX1 || (edge != LANDED_ON_EDGE_BOX1 && !this.near_edge))
-        {
+        if (
+          edge === LANDED_ON_EDGE_BOX1 ||
+          (edge != LANDED_ON_EDGE_BOX1 && !this.near_edge)
+        ) {
           temp_transform_matrix = this.last_dir
-              ? temp_transform_matrix.times(Mat4.translation(-this.axis_offset,0,-1))
-                  .times(Mat4.rotation(-this.falling_rotation, 0, 1, 0))
-                  .times(Mat4.translation(this.axis_offset,0,-2))
-              : temp_transform_matrix.times(Mat4.translation(0,this.axis_offset,-1))
-                  .times(Mat4.rotation(-this.falling_rotation, 1, 0, 0))
-                  .times(Mat4.translation(0,-this.axis_offset,-2))
+            ? temp_transform_matrix
+                .times(Mat4.translation(-this.axis_offset, 0, -1))
+                .times(Mat4.rotation(-this.falling_rotation, 0, 1, 0))
+                .times(Mat4.translation(this.axis_offset, 0, -2))
+            : temp_transform_matrix
+                .times(Mat4.translation(0, this.axis_offset, -1))
+                .times(Mat4.rotation(-this.falling_rotation, 1, 0, 0))
+                .times(Mat4.translation(0, -this.axis_offset, -2));
           // if (this.last_dir){console.log("far edge of the first box x-dir")}
           // else{console.log("far edge of the first box z-dir")}
         }
         //landed on the near edge of the second box
-        else{
-            temp_transform_matrix = this.last_dir
-            ? temp_transform_matrix.times(Mat4.translation(this.axis_offset,0,-1))
+        else {
+          temp_transform_matrix = this.last_dir
+            ? temp_transform_matrix
+                .times(Mat4.translation(this.axis_offset, 0, -1))
                 .times(Mat4.rotation(this.falling_rotation, 0, 1, 0))
-                .times(Mat4.translation(-this.axis_offset,0,-2))
-            : temp_transform_matrix.times(Mat4.translation(0,-this.axis_offset,-1))
+                .times(Mat4.translation(-this.axis_offset, 0, -2))
+            : temp_transform_matrix
+                .times(Mat4.translation(0, -this.axis_offset, -1))
                 .times(Mat4.rotation(this.falling_rotation, 1, 0, 0))
-                .times(Mat4.translation(0,this.axis_offset,-2))
-            // if (this.last_dir){console.log("near edge of the second box x-dir")}
-            // else{console.log("near edge of the second box z-dir")}
+                .times(Mat4.translation(0, this.axis_offset, -2));
+          // if (this.last_dir){console.log("near edge of the second box x-dir")}
+          // else{console.log("near edge of the second box z-dir")}
         }
         this.last_RF_transform = temp_transform_matrix;
         this.shapes.chess.draw(
-        context,
-        program_state,
-        temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
-        this.materials.character)
-      }
-      else
-      {
+          context,
+          program_state,
+          temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
+          this.materials.character
+        );
+      } else {
         if (this.fall_dis_2 < 0.6) {
-          this.fall_dis_2 +=  fall_speed * dt;
+          this.fall_dis_2 += fall_speed * dt;
         }
         let temp_transform_matrix = this.last_RF_transform;
-        if (edge === LANDED_ON_EDGE_BOX1 || (edge != LANDED_ON_EDGE_BOX1 && !this.near_edge))
-        {
+        if (
+          edge === LANDED_ON_EDGE_BOX1 ||
+          (edge != LANDED_ON_EDGE_BOX1 && !this.near_edge)
+        ) {
           temp_transform_matrix = this.last_dir
-              ? temp_transform_matrix.times(Mat4.translation(this.fall_dis_2, 0, 0))
-              : temp_transform_matrix.times(Mat4.translation(0, -this.fall_dis_2, 0))
-        }
-        else
-        {
+            ? temp_transform_matrix.times(
+                Mat4.translation(this.fall_dis_2, 0, 0)
+              )
+            : temp_transform_matrix.times(
+                Mat4.translation(0, -this.fall_dis_2, 0)
+              );
+        } else {
           temp_transform_matrix = this.last_dir
-              ? temp_transform_matrix.times(Mat4.translation(-this.fall_dis_2, 0, 0))
-              : temp_transform_matrix.times(Mat4.translation(0, this.fall_dis_2, 0))
+            ? temp_transform_matrix.times(
+                Mat4.translation(-this.fall_dis_2, 0, 0)
+              )
+            : temp_transform_matrix.times(
+                Mat4.translation(0, this.fall_dis_2, 0)
+              );
         }
         this.shapes.chess.draw(
-            context,
-            program_state,
-            temp_transform_matrix
-                .times(Mat4.scale(0.7, 0.7, 2)),
-            this.materials.character)
+          context,
+          program_state,
+          temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
+          this.materials.character
+        );
       }
-    }
-    else if (this.charging) {
+    } else if (this.charging) {
       if (this.charging_scale > 1.25) {
         this.charging_scale -= 0.01;
       }
@@ -683,21 +713,28 @@ export class SceneImplementation extends Base_Scene {
     if (-translation_y > 0) {
       //TODO: maybe a better way to sync these
       this.last_dir = this.next_dir;
-      let check_result = this.checkGameOver()
+      let check_result = this.checkGameOver();
       if (check_result[0] === DIRECT_FALLING) {
         this.drawFigure(context, program_state, true);
         return;
-      }
-      else if (check_result[0] === ROTATE_AND_FALLING)
-      {
-        if (check_result[1] === LANDED_ON_EDGE_BOX1)
-        {
-          this.drawFigure(context, program_state, false, true, LANDED_ON_EDGE_BOX1);
+      } else if (check_result[0] === ROTATE_AND_FALLING) {
+        if (check_result[1] === LANDED_ON_EDGE_BOX1) {
+          this.drawFigure(
+            context,
+            program_state,
+            false,
+            true,
+            LANDED_ON_EDGE_BOX1
+          );
           return;
-        }
-        else
-        {
-          this.drawFigure(context, program_state, false, true, LANDED_ON_EDGE_BOX2);
+        } else {
+          this.drawFigure(
+            context,
+            program_state,
+            false,
+            true,
+            LANDED_ON_EDGE_BOX2
+          );
           return;
         }
       }
@@ -773,6 +810,10 @@ export class SceneImplementation extends Base_Scene {
   }
 
   display(context, program_state) {
+    if (!this.mouse_enabled) {
+      this.add_mouse_controls(context.canvas);
+      this.mouse_enabled = true;
+    }
     super.display(context, program_state);
     this.draw_floor(context, program_state);
     this.drawBoxes(context, program_state);

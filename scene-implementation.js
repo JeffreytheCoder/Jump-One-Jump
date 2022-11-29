@@ -138,17 +138,25 @@ class Base_Scene extends Scene {
 
     //4 lines below: Code adapted from ./examples/surfaces-demo.js
     const initial_corner_point = vec3(-1, -1, 0);
-    const row_operation = (s, p) => p ? Mat4.translation(0, .2, 0).times(p.to4(1)).to3()
+    const row_operation = (s, p) =>
+      p
+        ? Mat4.translation(0, 0.2, 0).times(p.to4(1)).to3()
         : initial_corner_point;
-    const column_operation = (t, p) => Mat4.translation(.2, 0, 0).times(p.to4(1)).to3();
+    const column_operation = (t, p) =>
+      Mat4.translation(0.2, 0, 0).times(p.to4(1)).to3();
 
-    let modified_floor = new defs.Grid_Patch(10, 10, row_operation, column_operation)
-    for(let i=0; i<modified_floor.arrays.texture_coord.length;i++){
+    let modified_floor = new defs.Grid_Patch(
+      10,
+      10,
+      row_operation,
+      column_operation
+    );
+    for (let i = 0; i < modified_floor.arrays.texture_coord.length; i++) {
       modified_floor.arrays.texture_coord[i].scale_by(1);
     }
 
     let modified_cube = new defs.Cube();
-    for(let i=0; i<modified_cube.arrays.texture_coord.length;i++){
+    for (let i = 0; i < modified_cube.arrays.texture_coord.length; i++) {
       modified_cube.arrays.texture_coord[i].scale_by(0.5);
     }
 
@@ -167,7 +175,7 @@ class Base_Scene extends Scene {
       box: new Material(new defs.Textured_Phong(), {
         ambient: 1,
         color: hex_color('#000000'),
-        texture: new Texture("assets/steel2.jpg"),
+        texture: new Texture('assets/steel2.jpg'),
       }),
       character: new Material(new defs.Phong_Shader(), {
         ambient: 0.4,
@@ -177,7 +185,7 @@ class Base_Scene extends Scene {
       floor: new Material(new defs.Textured_Phong(), {
         ambient: 1,
         color: hex_color('#000000'),
-        texture: new Texture("assets/lava.jpg"),
+        texture: new Texture('assets/lava.jpg'),
       }),
     };
     // scene properties
@@ -200,7 +208,6 @@ class Base_Scene extends Scene {
       Mat4.translation(-5, 0, 0)
     );
     this.light_pos = vec4(-5, 200, -200, 1);
-    // .times(Mat4.rotation(Math.PI / 3, vec3(0, 0, 0)));
 
     // all transformations of rendered boxes
     this.box_translate_queue = [[0, 0]];
@@ -215,10 +222,12 @@ class Base_Scene extends Scene {
     this.charging = false;
     this.jump_dir = true; // x: true, z: false
 
-    //record charging time for the jump
+    // record charging time for the jump
     this.charging_begin_time = 0;
     this.charging_end_time = 0;
     this.charge_time = 0;
+    this.charging_scale = 2;
+    this.jump_distance = 0;
 
     // current pair of to-be-jumped boxes
     this.first_jump_box = [0, 0];
@@ -236,15 +245,14 @@ class Base_Scene extends Scene {
     this.game_over_1 = false;
     this.game_over_2 = false;
     this.game_over_3 = false;
+    this.fall_dis = 1.5;
+
+    // score
+    this.score = -1;
 
     //for camera translation
     this.camera_horizontal_translation = 0;
     this.camera_depth_translation = 0;
-
-    this.fall_dis = 1.5;
-
-    this.jump_distance = 0;
-    this.charging_scale = 2;
 
     //for rotation when falling
     this.falling_rotation = 0;
@@ -260,25 +268,36 @@ class Base_Scene extends Scene {
     this.materials.floor.color = color;
   }
 
- //floating_floor: Code adapted from ./examples/surfaces-demo.js
- floating_floor(context, program_state) {
-     const random = (x) => Math.sin(1000 * x + program_state.animation_time / 1000);
+  //floating_floor: Code adapted from ./examples/surfaces-demo.js
+  floating_floor(context, program_state) {
+    const random = (x) =>
+      Math.sin(1000 * x + program_state.animation_time / 1000);
 
-     // Update the JavaScript-side shape with new vertices:
-     this.shapes.sheet.arrays.position.forEach((p, i, a) =>
-         a[i] = vec3(p[0], p[1], .15 * random(i / a.length)));
-     // Update the normals to reflect the surface's new arrangement.
-     // This won't be perfect flat shading because vertices are shared.
-     //this.shapes.sheet.flat_shade();
-     // Draw the current sheet shape.
-     let floor_transform = Mat4.identity();
-     floor_transform = floor_transform.times(Mat4.scale(1000,1000,4));
-     floor_transform = floor_transform.times(Mat4.translation(0.15,0.05,0));
-     this.shapes.sheet.draw(context, program_state, floor_transform, this.materials.floor);
+    // Update the JavaScript-side shape with new vertices:
+    this.shapes.sheet.arrays.position.forEach(
+      (p, i, a) => (a[i] = vec3(p[0], p[1], 0.15 * random(i / a.length)))
+    );
+    // Update the normals to reflect the surface's new arrangement.
+    // This won't be perfect flat shading because vertices are shared.
+    //this.shapes.sheet.flat_shade();
+    // Draw the current sheet shape.
+    let floor_transform = Mat4.identity();
+    floor_transform = floor_transform.times(Mat4.scale(1000, 1000, 4));
+    floor_transform = floor_transform.times(Mat4.translation(0.15, 0.05, 0));
+    this.shapes.sheet.draw(
+      context,
+      program_state,
+      floor_transform,
+      this.materials.floor
+    );
 
-     // Update the gpu-side shape with new vertices.
-     // Warning:  You can't call this until you've already drawn the shape once.
-     this.shapes.sheet.copy_onto_graphics_card(context.context, ["position", "normal"], false);
+    // Update the gpu-side shape with new vertices.
+    // Warning:  You can't call this until you've already drawn the shape once.
+    this.shapes.sheet.copy_onto_graphics_card(
+      context.context,
+      ['position', 'normal'],
+      false
+    );
   }
 
   display(context, program_state) {
@@ -396,6 +415,8 @@ export class SceneImplementation extends Base_Scene {
 
   //prepares the next landing box
   prepare_jump() {
+    this.score += 1;
+    document.getElementById('score').innerHTML = this.score;
     const next_translation = getRandomInt(this.min_interval, this.max_interval);
     if (this.box_translate_queue.length === 1) {
       this.next_dir = true;
@@ -849,11 +870,14 @@ export class SceneImplementation extends Base_Scene {
   }
 
   display(context, program_state) {
+    // set up
     if (!this.mouse_enabled) {
       this.add_mouse_controls(context.canvas);
       this.mouse_enabled = true;
     }
     super.display(context, program_state);
+
+    // draw & change camera
     this.setUpCameraLoc(program_state);
     this.setUpChargingTime();
     this.draw_figure(
@@ -865,6 +889,5 @@ export class SceneImplementation extends Base_Scene {
     //change camera
     this.floating_floor(context, program_state);
     this.drawBoxes(context, program_state);
-
   }
 }

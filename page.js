@@ -1,11 +1,18 @@
 window.onload = function () {
-  var modal = document.getElementById('myModal');
+  const modal = document.getElementById('myModal');
+  const btn = document.getElementById('question');
+  const span = document.getElementsByClassName('close')[0];
+  const restart = document.getElementById('restart-btn');
+  const restart2 = document.getElementById('restart-btn2');
+  const highest = document.getElementById('highest');
 
-  // Get the button that opens the modal
-  var btn = document.getElementById('question');
-
-  // Get the <span> element that closes the modal
-  var span = document.getElementsByClassName('close')[0];
+  const highestScore = localStorage.getItem('highest');
+  if (!highestScore) {
+    localStorage.setItem('highest', 0);
+    highest.innerHTML = 0;
+  } else {
+    highest.innerHTML = highestScore;
+  }
 
   // When the user clicks on the button, open the modal
   btn.onclick = function () {
@@ -22,5 +29,13 @@ window.onload = function () {
     if (event.target == modal) {
       modal.style.display = 'none';
     }
+  };
+
+  restart.onclick = function () {
+    location.reload();
+  };
+
+  restart2.onclick = function () {
+    location.reload();
   };
 };

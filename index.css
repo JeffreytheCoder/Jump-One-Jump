@@ -10,6 +10,18 @@
   font-family: 'Courier New', Courier, monospace;
 }
 
+.highest {
+  color: #fff;
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: 60px; 
+  right: 60px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
 .score span {
   font-family: 'Courier New', Courier, monospace;
 }
@@ -73,5 +85,18 @@
   color: #000;
   font-size: 1.5em;
   font-weight: bold;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.restart {
+  color: #000;
+  font-size: 2em;
+  font-weight: bold;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
   font-family: 'Courier New', Courier, monospace;
 }

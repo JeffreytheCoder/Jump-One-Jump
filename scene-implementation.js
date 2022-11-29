@@ -548,6 +548,15 @@ export class SceneImplementation extends Base_Scene {
     if (!this.audio.paused) {
       this.audio.pause();
     }
+    console.log(window.localStorage.getItem('highest'));
+    if (window.localStorage.getItem('highest') < this.score) {
+      window.localStorage.setItem('highest', this.score);
+      const restartModal = document.getElementById('congratulation');
+      restartModal.style.display = 'block';
+    } else {
+      const restartModal = document.getElementById('restart');
+      restartModal.style.display = 'block';
+    }
   }
 
   checkGameOver() {

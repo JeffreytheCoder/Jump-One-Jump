@@ -8,6 +8,7 @@
     <link href="assets/fav.ico" rel="icon">
     <link rel="stylesheet" href="index.css">
     <title>Tiny Graphics</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <script type="text/javascript" src="page.js"></script>
 </head>
 <body style="background: White">
@@ -25,7 +26,8 @@
         new Canvas_Widget(element_to_replace, scenes);
     </script>
 
-    <h6 class="score">Your score: <span id="score"></span></h6>
+    <h6 class="score">Score: <span id="score"></span></h6>
+    <h6 class="highest">Highest score: <span id="highest"></span></h6>
     <button class="question" id="question">How to play?</button>
 
     <div id="myModal" class="modal">
@@ -34,6 +36,23 @@
             <p class="explain">You are in the middle of lava and you have to jump to the next block to escape! </p>
             <p class="explain">Press any place in the screen. The longer you press, the farther you will jump. Try time your press duration to jump to the next box. </p>
             <p class="explain">Every time you jump to a new box, you score a point. Try to get the highest point and good luck :)</p>
+        </div>
+    </div>
+
+    <div id="restart" class="modal">
+        <div class="modal-content">
+            <!-- <span class="restart-close">&times;</span> -->
+            <p class="explain">You tried to swim in lava :( </p>
+            <button id="restart-btn" class="restart">Restart</button>
+        </div>
+    </div>
+
+    <div id="congratulation" class="modal">
+        <div class="modal-content">
+            <!-- <span class="restart-close">&times;</span> -->
+            <p class="explain">You tried to swim in lava :(</p>
+            <p class="explain">But you got a new highest score! You are one step closer to escape :) </p>
+            <button id="restart-btn2" class="restart">Restart</button>
         </div>
     </div>
 </body>

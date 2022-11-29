@@ -1,4 +1,5 @@
 import { defs, tiny } from './examples/common.js';
+import Shape_From_File from  './examples/obj-file-demo.js';
 
 const {
   Vector,
@@ -163,8 +164,9 @@ class Base_Scene extends Scene {
     // shapes
     this.shapes = {
       cube: modified_cube,
-      chess: new Cube(),
+      //chess: new Cube(),
       sheet: modified_floor,
+      chess: new Shape_From_File("assets/Chess.obj")
     };
 
     // colors
@@ -177,10 +179,10 @@ class Base_Scene extends Scene {
         color: hex_color('#000000'),
         texture: new Texture('assets/steel2.jpg'),
       }),
-      character: new Material(new defs.Phong_Shader(), {
+      character: new Material(new defs.Textured_Phong(), {
         ambient: 0.4,
-        diffusivity: 0.6,
-        color: hex_color('#03A9F4'),
+        color: hex_color('#000000'),
+        texture: new Texture('assets/wood.jpg'),
       }),
       floor: new Material(new defs.Textured_Phong(), {
         ambient: 1,
@@ -213,7 +215,7 @@ class Base_Scene extends Scene {
     this.box_translate_queue = [[0, 0]];
 
     this.max_interval = 12.5;
-    this.min_interval = 6;
+    this.min_interval = 8;
 
     this.box_cur_x = 0;
     this.box_cur_z = 0;
@@ -456,20 +458,21 @@ export class SceneImplementation extends Base_Scene {
     const [box_x, box_y] = this.box_translate_queue[box_index];
 
     const box_mat = this.identity_mat.times(
-      Mat4.translation(box_x, box_y, 0).times(Mat4.scale(2, 2, 1))
+      Mat4.translation(box_x, box_y, 0).times(Mat4.scale(2, 2, 1.5))
     );
     this.shapes.cube.draw(context, program_state, box_mat, this.materials.box);
     return model_transform;
   }
 
   areCollided(figure, box) {
+    const threshold = 3;
     if (
-      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) >= 2.7 ||
-      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) >= 2.7
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) >= threshold ||
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) >= threshold
     ) {
       return LANDED_ON_GROUND;
     } else if (
-      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) < 2.7 &&
+      Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) < threshold &&
       Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) > 2
     ) {
       this.axis_offset = Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) - 2;
@@ -477,7 +480,7 @@ export class SceneImplementation extends Base_Scene {
       //console.log("figure[0]: %d, box[0]: %d", figure[0], box[0])
       return LANDED_ON_EDGE;
     } else if (
-      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) < 2.7 &&
+      Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) < threshold &&
       Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) > 2
     ) {
       this.axis_offset = Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) - 2;
@@ -519,7 +522,7 @@ export class SceneImplementation extends Base_Scene {
     let local_charge_time = charge_time;
     const t_current = program_state.animation_time / 1000;
     const velocity_x_max = 12;
-    const velocity_y_max = 6;
+    const velocity_y_max = 10;
     const g = 12;
     const charge_time_max = 1;
     if (local_charge_time > charge_time_max) {
@@ -642,13 +645,15 @@ export class SceneImplementation extends Base_Scene {
   ) {
     let dt = program_state.animation_delta_time / 1000;
     if (is_falling) {
+
       if (this.fall_dis > 0.5) {
         this.shapes.chess.draw(
           context,
           program_state,
           this.figure_rest_state_transform
-            .times(Mat4.scale(0.7, 0.7, 2))
-            .times(Mat4.translation(0, 0, -this.fall_dis)),
+            .times(Mat4.scale(1, 1, 1))
+            .times(Mat4.rotation(Math.PI, 1, 0,0))
+            .times(Mat4.translation(0, 0, this.fall_dis)),
           this.materials.character
         );
         this.fall_dis -= 0.025;
@@ -657,7 +662,8 @@ export class SceneImplementation extends Base_Scene {
           context,
           program_state,
           this.figure_rest_state_transform
-            .times(Mat4.scale(0.7, 0.7, 2))
+            .times(Mat4.scale(1, 1, 1))
+            .times(Mat4.rotation(Math.PI, 1, 0,0))
             .times(Mat4.translation(0, 0, -0.5)),
           this.materials.character
         );
@@ -677,13 +683,13 @@ export class SceneImplementation extends Base_Scene {
         ) {
           temp_transform_matrix = this.last_dir
             ? temp_transform_matrix
-                .times(Mat4.translation(-this.axis_offset, 0, -1))
+                .times(Mat4.translation(-this.axis_offset, 0, -1.5))
                 .times(Mat4.rotation(-this.falling_rotation, 0, 1, 0))
-                .times(Mat4.translation(this.axis_offset, 0, -2))
+                .times(Mat4.translation(this.axis_offset, 0, -1.5))
             : temp_transform_matrix
-                .times(Mat4.translation(0, this.axis_offset, -1))
+                .times(Mat4.translation(0, this.axis_offset, -1.5))
                 .times(Mat4.rotation(-this.falling_rotation, 1, 0, 0))
-                .times(Mat4.translation(0, -this.axis_offset, -2));
+                .times(Mat4.translation(0, -this.axis_offset, -1.5));
           // if (this.last_dir){console.log("far edge of the first box x-dir")}
           // else{console.log("far edge of the first box z-dir")}
         }
@@ -691,13 +697,13 @@ export class SceneImplementation extends Base_Scene {
         else {
           temp_transform_matrix = this.last_dir
             ? temp_transform_matrix
-                .times(Mat4.translation(this.axis_offset, 0, -1))
+                .times(Mat4.translation(this.axis_offset, 0, -1.5))
                 .times(Mat4.rotation(this.falling_rotation, 0, 1, 0))
-                .times(Mat4.translation(-this.axis_offset, 0, -2))
+                .times(Mat4.translation(-this.axis_offset, 0, -1.5))
             : temp_transform_matrix
-                .times(Mat4.translation(0, -this.axis_offset, -1))
+                .times(Mat4.translation(0, -this.axis_offset, -1.5))
                 .times(Mat4.rotation(this.falling_rotation, 1, 0, 0))
-                .times(Mat4.translation(0, this.axis_offset, -2));
+                .times(Mat4.translation(0, this.axis_offset, -1.5));
           // if (this.last_dir){console.log("near edge of the second box x-dir")}
           // else{console.log("near edge of the second box z-dir")}
         }
@@ -705,11 +711,11 @@ export class SceneImplementation extends Base_Scene {
         this.shapes.chess.draw(
           context,
           program_state,
-          temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
+          temp_transform_matrix.times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI, 1, 0,0)),
           this.materials.character
         );
       } else {
-        if (this.fall_dis_2 < 0.6) {
+        if (this.fall_dis_2 < 1) {
           this.fall_dis_2 += fall_speed * dt;
         }
         let temp_transform_matrix = this.last_RF_transform;
@@ -736,7 +742,7 @@ export class SceneImplementation extends Base_Scene {
         this.shapes.chess.draw(
           context,
           program_state,
-          temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
+          temp_transform_matrix.times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI, 1, 0,0)),
           this.materials.character
         );
       }
@@ -748,8 +754,9 @@ export class SceneImplementation extends Base_Scene {
         context,
         program_state,
         this.figure_rest_state_transform
-          .times(Mat4.scale(0.7, 0.7, this.charging_scale))
-          .times(Mat4.translation(0, 0, -1.5)),
+          .times(Mat4.scale(1, 1, this.charging_scale))
+          .times(Mat4.translation(0, 0, -1.5))
+          .times(Mat4.rotation(Math.PI, 1, 0,0)),
         this.materials.character
       );
     } else {
@@ -759,7 +766,7 @@ export class SceneImplementation extends Base_Scene {
       //get denominator
       let total_trans = this.jump_distance;
       //get current rotation angle
-      let angle = total_trans ? (trans / total_trans) * Math.PI : 0;
+      let angle = total_trans ? (trans / total_trans) * 2*Math.PI : 0;
       //we cannot change figure_rest_state_transform since it is also used for the camera translation.
       //so create a temp variable here to encode the rotation of the figure
       let temp_transform_matrix = this.figure_rest_state_transform.times(
@@ -772,7 +779,7 @@ export class SceneImplementation extends Base_Scene {
       this.shapes.chess.draw(
         context,
         program_state,
-        temp_transform_matrix.times(Mat4.scale(0.7, 0.7, 2)),
+        temp_transform_matrix.times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI, 1, 0,0)),
         this.materials.character
       );
     }

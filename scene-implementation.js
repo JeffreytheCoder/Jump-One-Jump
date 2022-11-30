@@ -222,6 +222,8 @@ class Base_Scene extends Scene {
 
     // figure property
     this.charging = false;
+    this.jumping = false;
+    this.hasMouseUp = false;
     this.jump_dir = true; // x: true, z: false
 
     // record charging time for the jump
@@ -383,17 +385,24 @@ export class SceneImplementation extends Base_Scene {
       'Charge for jump',
       ['c'],
       () => {
-        this.charging = true;
-        this.charge_audio.play();
-        this.charging_begin_time = this.time;
+        if (!this.jumping){
+          this.hasMouseUp=false;
+          this.charging = true;
+          this.jumping = true;
+          this.charge_audio.play();
+          this.charging_begin_time = this.time;
+        }
       },
       undefined,
       () => {
-        this.charge_audio.pause();
-        this.charge_audio.currentTime = 0;
-        this.charging_end_time = this.time;
-        if (!this.game_over_1 && !this.game_over_2) {
-          this.charging = false;
+        if(!this.hasMouseUp){
+          this.hasMouseUp=true;
+          this.charge_audio.pause();
+          this.charge_audio.currentTime = 0;
+          this.charging_end_time = this.time;
+          if (!this.game_over_1 && !this.game_over_2) {
+            this.charging = false;
+        }
         }
       }
     );
@@ -402,16 +411,23 @@ export class SceneImplementation extends Base_Scene {
   add_mouse_controls(canvas) {
     canvas.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      this.charging = true;
-      this.charge_audio.play();
-      this.charging_begin_time = this.time;
+      if (!this.jumping){
+        this.hasMouseUp=false;
+        this.charging = true;
+        this.jumping = true;
+        this.charge_audio.play();
+        this.charging_begin_time = this.time;
+      }
     });
     canvas.addEventListener('mouseup', (e) => {
-      this.charge_audio.pause();
-      this.charge_audio.currentTime = 0;
-      this.charging_end_time = this.time;
-      if (!this.game_over_1 && !this.game_over_2) {
-        this.charging = false;
+      if(!this.hasMouseUp){
+        this.hasMouseUp=true;
+        this.charge_audio.pause();
+        this.charge_audio.currentTime = 0;
+        this.charging_end_time = this.time;
+        if (!this.game_over_1 && !this.game_over_2) {
+          this.charging = false;
+        }
       }
     });
   }
@@ -646,7 +662,6 @@ export class SceneImplementation extends Base_Scene {
   ) {
     let dt = program_state.animation_delta_time / 1000;
     if (is_falling) {
-
       if (this.fall_dis > 0.5) {
         this.shapes.chess.draw(
           context,
@@ -820,6 +835,7 @@ export class SceneImplementation extends Base_Scene {
       this.drawFigure(context, program_state);
       //reset all timers
       this.resetTimers();
+      this.jumping=false;
       //change camera initial location
       this.changeInitCameraLoc();
       //reset camera translations before next jump

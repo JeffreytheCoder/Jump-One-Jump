@@ -228,7 +228,7 @@ class Base_Scene extends Scene {
     this.charging_begin_time = 0;
     this.charging_end_time = 0;
     this.charge_time = 0;
-    this.charging_scale = 2;
+    this.charging_scale = 1;
     this.jump_distance = 0;
 
     // current pair of to-be-jumped boxes
@@ -285,7 +285,8 @@ class Base_Scene extends Scene {
     // Draw the current sheet shape.
     let floor_transform = Mat4.identity();
     floor_transform = floor_transform.times(Mat4.scale(1000, 1000, 4));
-    floor_transform = floor_transform.times(Mat4.translation(0.15, 0.05, 0));
+    floor_transform = floor_transform.times(Mat4.translation(0.15, 0.05, 1));
+    floor_transform = floor_transform.times(Mat4.translation(0, 0, -1.1));
     this.shapes.sheet.draw(
       context,
       program_state,
@@ -465,7 +466,7 @@ export class SceneImplementation extends Base_Scene {
   }
 
   areCollided(figure, box) {
-    const threshold = 3;
+    const threshold = 2.8;
     if (
       Math.abs(Math.abs(figure[0]) - Math.abs(box[0])) >= threshold ||
       Math.abs(Math.abs(figure[1]) - Math.abs(box[1])) >= threshold
@@ -747,20 +748,22 @@ export class SceneImplementation extends Base_Scene {
         );
       }
     } else if (this.charging) {
-      if (this.charging_scale > 1.25) {
-        this.charging_scale -= 0.01;
+      if (this.charging_scale > 0.5) {
+        this.charging_scale -= 0.005;
       }
       this.shapes.chess.draw(
         context,
         program_state,
         this.figure_rest_state_transform
+          .times(Mat4.translation(0, 0, -3))
+          .times(Mat4.translation(0, 0, 1.5))
           .times(Mat4.scale(1, 1, this.charging_scale))
           .times(Mat4.translation(0, 0, -1.5))
           .times(Mat4.rotation(Math.PI, 1, 0,0)),
         this.materials.character
       );
     } else {
-      this.charging_scale = 2;
+      this.charging_scale = 1;
       //get numerator
       let trans = this.m_x_trans ? this.m_x_trans : this.m_y_trans;
       //get denominator

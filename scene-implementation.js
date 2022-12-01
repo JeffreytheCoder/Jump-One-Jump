@@ -253,7 +253,7 @@ class Base_Scene extends Scene {
     this.game_over_1 = false;
     this.game_over_2 = false;
     this.game_over_3 = false;
-    this.fall_dis = 2.5;
+    this.fall_dis = 3;
 
     // score
     this.score = -1;
@@ -463,18 +463,6 @@ export class SceneImplementation extends Base_Scene {
 
   is_figure_in_next_box() {}
 
-  // draw_floor(context, program_state) {
-  //   const floor_mat = this.identity_mat
-  //     .times(Mat4.translation(0, 0, 1))
-  //     .times(Mat4.scale(1000, 1000, 0.001));
-  //   this.shapes.cube.draw(
-  //     context,
-  //     program_state,
-  //     floor_mat,
-  //     this.materials.floor
-  //   );
-  // }
-
   draw_box(context, program_state, model_transform, box_index) {
     const [box_x, box_y] = this.box_translate_queue[box_index];
 
@@ -666,7 +654,7 @@ export class SceneImplementation extends Base_Scene {
   ) {
     let dt = program_state.animation_delta_time / 1000;
     if (is_falling) {
-      if (this.fall_dis > 0.25) {
+      if (this.fall_dis > 0) {
         this.shapes.chess.draw(
           context,
           program_state,
@@ -676,7 +664,7 @@ export class SceneImplementation extends Base_Scene {
             .times(Mat4.translation(0, 0, this.fall_dis)),
           this.materials.character
         );
-        this.fall_dis -= 0.025;
+        this.fall_dis -= 0.05;
       } else {
         this.shapes.chess.draw(
           context,
@@ -684,7 +672,7 @@ export class SceneImplementation extends Base_Scene {
           this.figure_rest_state_transform
             .times(Mat4.scale(1, 1, 1))
             .times(Mat4.rotation(Math.PI, 1, 0, 0))
-            .times(Mat4.translation(0, 0, 0.25)),
+            .times(Mat4.translation(0, 0, 0)),
           this.materials.character
         );
       }

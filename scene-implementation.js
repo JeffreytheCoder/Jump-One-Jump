@@ -923,7 +923,7 @@ export class SceneImplementation extends Base_Scene {
     super.display(context, program_state);
 
     // draw & change camera
-    //this.setUpCameraLoc(program_state);
+    this.setUpCameraLoc(program_state);
     this.setUpChargingTime();
     this.draw_figure(
       context,

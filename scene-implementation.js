@@ -253,7 +253,7 @@ class Base_Scene extends Scene {
     this.game_over_1 = false;
     this.game_over_2 = false;
     this.game_over_3 = false;
-    this.fall_dis = 1.5;
+    this.fall_dis = 2.5;
 
     // score
     this.score = -1;
@@ -666,7 +666,7 @@ export class SceneImplementation extends Base_Scene {
   ) {
     let dt = program_state.animation_delta_time / 1000;
     if (is_falling) {
-      if (this.fall_dis > 0.5) {
+      if (this.fall_dis > 0.25) {
         this.shapes.chess.draw(
           context,
           program_state,
@@ -684,7 +684,7 @@ export class SceneImplementation extends Base_Scene {
           this.figure_rest_state_transform
             .times(Mat4.scale(1, 1, 1))
             .times(Mat4.rotation(Math.PI, 1, 0, 0))
-            .times(Mat4.translation(0, 0, -0.5)),
+            .times(Mat4.translation(0, 0, 0.25)),
           this.materials.character
         );
       }
@@ -923,7 +923,7 @@ export class SceneImplementation extends Base_Scene {
     super.display(context, program_state);
 
     // draw & change camera
-    this.setUpCameraLoc(program_state);
+    //this.setUpCameraLoc(program_state);
     this.setUpChargingTime();
     this.draw_figure(
       context,

@@ -1,5 +1,5 @@
 import { defs, tiny } from './examples/common.js';
-import Shape_From_File from  './examples/obj-file-demo.js';
+import Shape_From_File from './examples/obj-file-demo.js';
 
 const {
   Vector,
@@ -166,7 +166,7 @@ class Base_Scene extends Scene {
       cube: modified_cube,
       //chess: new Cube(),
       sheet: modified_floor,
-      chess: new Shape_From_File("assets/Chess.obj")
+      chess: new Shape_From_File('assets/Chess.obj'),
     };
 
     // colors
@@ -175,13 +175,17 @@ class Base_Scene extends Scene {
     // materials
     this.materials = {
       box: new Material(new defs.Textured_Phong(), {
-        ambient: 1,
-        color: hex_color('#000000'),
+        ambient: 0.8,
+        diffusivity: 0.8,
+        specularity: 0.8,
+        // color: hex_color('#000000'),
         texture: new Texture('assets/steel2.jpg'),
       }),
       character: new Material(new defs.Textured_Phong(), {
         ambient: 0.4,
-        color: hex_color('#000000'),
+        diffusivity: 0.4,
+        specularity: 0.2,
+        color: hex_color('#ffffff'),
         texture: new Texture('assets/wood.jpg'),
       }),
       floor: new Material(new defs.Textured_Phong(), {
@@ -385,8 +389,8 @@ export class SceneImplementation extends Base_Scene {
       'Charge for jump',
       ['c'],
       () => {
-        if (!this.jumping){
-          this.hasMouseUp=false;
+        if (!this.jumping) {
+          this.hasMouseUp = false;
           this.charging = true;
           this.jumping = true;
           this.charge_audio.play();
@@ -395,14 +399,14 @@ export class SceneImplementation extends Base_Scene {
       },
       undefined,
       () => {
-        if(!this.hasMouseUp){
-          this.hasMouseUp=true;
+        if (!this.hasMouseUp) {
+          this.hasMouseUp = true;
           this.charge_audio.pause();
           this.charge_audio.currentTime = 0;
           this.charging_end_time = this.time;
           if (!this.game_over_1 && !this.game_over_2) {
             this.charging = false;
-        }
+          }
         }
       }
     );
@@ -411,8 +415,8 @@ export class SceneImplementation extends Base_Scene {
   add_mouse_controls(canvas) {
     canvas.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      if (!this.jumping){
-        this.hasMouseUp=false;
+      if (!this.jumping) {
+        this.hasMouseUp = false;
         this.charging = true;
         this.jumping = true;
         this.charge_audio.play();
@@ -420,8 +424,8 @@ export class SceneImplementation extends Base_Scene {
       }
     });
     canvas.addEventListener('mouseup', (e) => {
-      if(!this.hasMouseUp){
-        this.hasMouseUp=true;
+      if (!this.hasMouseUp) {
+        this.hasMouseUp = true;
         this.charge_audio.pause();
         this.charge_audio.currentTime = 0;
         this.charging_end_time = this.time;
@@ -668,7 +672,7 @@ export class SceneImplementation extends Base_Scene {
           program_state,
           this.figure_rest_state_transform
             .times(Mat4.scale(1, 1, 1))
-            .times(Mat4.rotation(Math.PI, 1, 0,0))
+            .times(Mat4.rotation(Math.PI, 1, 0, 0))
             .times(Mat4.translation(0, 0, this.fall_dis)),
           this.materials.character
         );
@@ -679,7 +683,7 @@ export class SceneImplementation extends Base_Scene {
           program_state,
           this.figure_rest_state_transform
             .times(Mat4.scale(1, 1, 1))
-            .times(Mat4.rotation(Math.PI, 1, 0,0))
+            .times(Mat4.rotation(Math.PI, 1, 0, 0))
             .times(Mat4.translation(0, 0, -0.5)),
           this.materials.character
         );
@@ -727,7 +731,9 @@ export class SceneImplementation extends Base_Scene {
         this.shapes.chess.draw(
           context,
           program_state,
-          temp_transform_matrix.times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI, 1, 0,0)),
+          temp_transform_matrix
+            .times(Mat4.scale(1, 1, 1))
+            .times(Mat4.rotation(Math.PI, 1, 0, 0)),
           this.materials.character
         );
       } else {
@@ -758,7 +764,9 @@ export class SceneImplementation extends Base_Scene {
         this.shapes.chess.draw(
           context,
           program_state,
-          temp_transform_matrix.times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI, 1, 0,0)),
+          temp_transform_matrix
+            .times(Mat4.scale(1, 1, 1))
+            .times(Mat4.rotation(Math.PI, 1, 0, 0)),
           this.materials.character
         );
       }
@@ -774,7 +782,7 @@ export class SceneImplementation extends Base_Scene {
           .times(Mat4.translation(0, 0, 1.5))
           .times(Mat4.scale(1, 1, this.charging_scale))
           .times(Mat4.translation(0, 0, -1.5))
-          .times(Mat4.rotation(Math.PI, 1, 0,0)),
+          .times(Mat4.rotation(Math.PI, 1, 0, 0)),
         this.materials.character
       );
     } else {
@@ -784,7 +792,7 @@ export class SceneImplementation extends Base_Scene {
       //get denominator
       let total_trans = this.jump_distance;
       //get current rotation angle
-      let angle = total_trans ? (trans / total_trans) * 2*Math.PI : 0;
+      let angle = total_trans ? (trans / total_trans) * 2 * Math.PI : 0;
       //we cannot change figure_rest_state_transform since it is also used for the camera translation.
       //so create a temp variable here to encode the rotation of the figure
       let temp_transform_matrix = this.figure_rest_state_transform.times(
@@ -797,7 +805,9 @@ export class SceneImplementation extends Base_Scene {
       this.shapes.chess.draw(
         context,
         program_state,
-        temp_transform_matrix.times(Mat4.scale(1, 1, 1)).times(Mat4.rotation(Math.PI, 1, 0,0)),
+        temp_transform_matrix
+          .times(Mat4.scale(1, 1, 1))
+          .times(Mat4.rotation(Math.PI, 1, 0, 0)),
         this.materials.character
       );
     }
@@ -835,7 +845,7 @@ export class SceneImplementation extends Base_Scene {
       this.drawFigure(context, program_state);
       //reset all timers
       this.resetTimers();
-      this.jumping=false;
+      this.jumping = false;
       //change camera initial location
       this.changeInitCameraLoc();
       //reset camera translations before next jump

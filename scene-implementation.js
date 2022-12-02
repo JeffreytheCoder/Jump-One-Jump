@@ -25,6 +25,7 @@ const LANDED_ON_EDGE_BOX1 = 13;
 const LANDED_ON_EDGE_BOX2 = 14;
 const DIRECT_FALLING = 20;
 const ROTATE_AND_FALLING = 21;
+const images = ["rock", "steel2","zhuzi","brick", "leather"];
 
 function getRandomInt(min, max) {
   return Math.random() * (max - min) + min;
@@ -174,12 +175,40 @@ class Base_Scene extends Scene {
 
     // materials
     this.materials = {
-      box: new Material(new defs.Textured_Phong(), {
-        ambient: 0.8,
-        diffusivity: 0.8,
-        specularity: 0.8,
+      box1: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 1,
+        specularity: 1,
+        // color: hex_color('#000000'),
+        texture: new Texture('assets/leather.jpg'),
+      }),
+      box2: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 1,
+        specularity: 1,
+        // color: hex_color('#000000'),
+        texture: new Texture('assets/zhuzi.jpg'),
+      }),
+      box3: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 1,
+        specularity: 1,
         // color: hex_color('#000000'),
         texture: new Texture('assets/steel2.jpg'),
+      }),
+      box4: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 1,
+        specularity: 1,
+        // color: hex_color('#000000'),
+        texture: new Texture('assets/brick.jpg'),
+      }),
+      box5: new Material(new defs.Textured_Phong(), {
+        ambient: 1,
+        diffusivity: 1,
+        specularity: 1,
+        // color: hex_color('#000000'),
+        texture: new Texture('assets/rock.jpg'),
       }),
       character: new Material(new defs.Textured_Phong(), {
         ambient: 0.4,
@@ -217,6 +246,7 @@ class Base_Scene extends Scene {
 
     // all transformations of rendered boxes
     this.box_translate_queue = [[0, 0]];
+    this.box_texture_queue = [0];
 
     this.max_interval = 12.5;
     this.min_interval = 8;
@@ -449,10 +479,12 @@ export class SceneImplementation extends Base_Scene {
     if (this.next_dir) {
       this.box_cur_x += next_translation;
       this.box_translate_queue.push([this.box_cur_x, this.box_cur_z]);
+      this.box_texture_queue.push(Math.trunc(getRandomInt(0, images.length)));
       this.jump_dir = true;
     } else {
       this.box_cur_z -= next_translation;
       this.box_translate_queue.push([this.box_cur_x, this.box_cur_z]);
+      this.box_texture_queue.push(Math.trunc(getRandomInt(0, images.length)));
       this.jump_dir = false;
     }
     this.first_jump_box =
@@ -465,11 +497,11 @@ export class SceneImplementation extends Base_Scene {
 
   draw_box(context, program_state, model_transform, box_index) {
     const [box_x, box_y] = this.box_translate_queue[box_index];
-
     const box_mat = this.identity_mat.times(
       Mat4.translation(box_x, box_y, 0).times(Mat4.scale(2, 2, 1.5))
     );
-    this.shapes.cube.draw(context, program_state, box_mat, this.materials.box);
+    const box = 'box' + (this.box_texture_queue[box_index] + 1);
+    this.shapes.cube.draw(context, program_state, box_mat, this.materials[box]);
     return model_transform;
   }
 
